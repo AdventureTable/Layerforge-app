@@ -103,7 +103,7 @@ export function Header() {
       });
 
       if (selected) {
-        const path = typeof selected === 'string' ? selected : selected.path;
+        const path = typeof selected === 'string' ? selected : (selected as { path: string }).path;
         const contents = await readFile(path);
         const base64 = uint8ArrayToBase64(new Uint8Array(contents));
         const ext = path.split('.').pop()?.toLowerCase() || 'png';
@@ -187,7 +187,7 @@ export function Header() {
       });
 
       if (selected) {
-        const path = typeof selected === 'string' ? selected : selected.path;
+        const path = typeof selected === 'string' ? selected : (selected as { path: string }).path;
         const contents = await readFile(path);
         const json = new TextDecoder().decode(contents);
         const project = JSON.parse(json);
