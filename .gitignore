@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+python-core/venv/
+python-core/.venv/
+
+# Build outputs
+dist/
+build/
+python-core/dist/
+python-core/build/
+
+# Tauri
+src-tauri/target/
+src-tauri/binaries/*.exe
+src-tauri/binaries/cheapforge-core-*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.spec
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage/
+.nyc_output/
+htmlcov/
+.pytest_cache/

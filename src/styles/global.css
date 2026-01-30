@@ -1,0 +1,97 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(31, 174, 122, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(108, 255, 154, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(15, 46, 38, 0.4) 0%, transparent 70%),
+    #0A0D0F;
+}
+
+/* Particle/noise overlay effect */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(rgba(108, 255, 154, 0.12) 1px, transparent 1px),
+    radial-gradient(rgba(31, 174, 122, 0.08) 1px, transparent 1px);
+  background-size: 60px 60px, 90px 90px;
+  background-position: 0 0, 30px 30px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* Ensure content is above the particle layer */
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 46, 38, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(31, 174, 122, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 174, 122, 0.6);
+}
+
+/* Glow effects for interactive elements */
+
+/* Glow on filled buttons */
+.mantine-Button-root[data-variant="filled"] {
+  box-shadow: 0 0 12px rgba(31, 174, 122, 0.3);
+  transition: box-shadow 0.2s ease;
+}
+
+.mantine-Button-root[data-variant="filled"]:hover {
+  box-shadow: 0 0 18px rgba(31, 174, 122, 0.5);
+}
+
+/* Glow on slider thumb hover */
+.mantine-Slider-thumb:hover {
+  box-shadow: 0 0 12px rgba(108, 255, 154, 0.6) !important;
+}
+
+/* Glow on focused inputs */
+.mantine-Input-input:focus,
+.mantine-NumberInput-input:focus,
+.mantine-TextInput-input:focus,
+.mantine-Select-input:focus {
+  border-color: rgba(31, 174, 122, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(31, 174, 122, 0.15);
+}
+
+/* Subtle glow on switches when checked */
+.mantine-Switch-track[data-checked] {
+  box-shadow: 0 0 8px rgba(31, 174, 122, 0.4);
+}
+
+/* Active tab glow */
+.mantine-Tabs-tab[data-active] {
+  box-shadow: 0 2px 8px rgba(31, 174, 122, 0.3);
+}

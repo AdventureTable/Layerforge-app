@@ -1,0 +1,467 @@
+import { useMemo } from 'react';
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import type {
+  ProjectState,
+  Filament,
+  ModelGeometrySettings,
+  PrintSettings,
+  ColorPlanSettings,
+  LightingSettings,
+  ColorStop,
+  SwapEntry,
+} from '../types';
+import {
+  DEFAULT_MODEL_GEOMETRY,
+  DEFAULT_PRINT_SETTINGS,
+  DEFAULT_LIGHTING,
+  DEFAULT_FILAMENTS,
+  calculateRecommendedResolution,
+} from '../types';
+
+// Extended state for resolution change modal
+interface ResolutionModalState {
+  showResolutionModal: boolean;
+  pendingResolutionChange: number | null;
+}
+
+interface ProjectActions {
+  // Image actions
+  setImage: (path: string, data: string) => void;
+  clearImage: () => void;
+
+  // Filament actions
+  addFilament: (filament: Filament) => void;
+  updateFilament: (id: string, updates: Partial<Filament>) => void;
+  removeFilament: (id: string) => void;
+  toggleFilament: (id: string) => void;
+  reorderFilaments: (filaments: Filament[]) => void;
+
+  // Settings actions
+  setModelGeometry: (settings: Partial<ModelGeometrySettings>) => void;
+  setPrintSettings: (settings: Partial<PrintSettings>) => void;
+  setColorPlan: (settings: Partial<ColorPlanSettings>) => void;
+  setLighting: (settings: Partial<LightingSettings>) => void;
+
+  // Mesh resolution actions
+  setMeshResolution: (value: number, manual?: boolean) => void;
+  updateMeshResolutionFromSettings: () => void;
+  showResolutionChangeModal: (newRecommended: number) => void;
+  hideResolutionChangeModal: () => void;
+  acceptPendingResolution: () => void;
+  rejectPendingResolution: () => void;
+
+  // Color stops actions
+  updateColorStop: (filamentId: string, thresholdZMm: number) => void;
+  initializeColorStops: () => void;
+
+  // Processing state
+  setHeightmapData: (data: string, width: number, height: number) => void;
+  setPreviewData: (data: string) => void;
+  setMeshReady: (ready: boolean) => void;
+  setSwaps: (swaps: SwapEntry[]) => void;
+  setProcessing: (processing: boolean) => void;
+
+  // UI state
+  setActiveView: (view: 'image' | 'preview' | '3d') => void;
+  setLiveUpdate: (enabled: boolean) => void;
+  setLockAspectRatio: (locked: boolean) => void;
+  setImageAspectRatio: (ratio: number) => void;
+  markDirty: () => void;
+  markClean: () => void;
+
+  // Project actions
+  resetProject: () => void;
+  loadProject: (state: Partial<ProjectState>) => void;
+  getProjectJSON: () => string;
+}
+
+type ProjectStore = ProjectState & ProjectActions & ResolutionModalState;
+
+const initialState: ProjectState & ResolutionModalState = {
+  imagePath: null,
+  imageData: null,
+  imageAspectRatio: 1,
+  filaments: DEFAULT_FILAMENTS,
+  modelGeometry: DEFAULT_MODEL_GEOMETRY,
+  printSettings: DEFAULT_PRINT_SETTINGS,
+  colorPlan: {
+    mode: 'transmission',
+    stops: [],
+  },
+  lighting: DEFAULT_LIGHTING,
+  heightmapData: null,
+  heightmapWidth: 0,
+  heightmapHeight: 0,
+  previewData: null,
+  meshReady: false,
+  swaps: [],
+  isDirty: false,
+  isProcessing: false,
+  liveUpdate: true,
+  lockAspectRatio: true,
+  activeView: 'image',
+  // Resolution modal state
+  showResolutionModal: false,
+  pendingResolutionChange: null,
+};
+
+export const useProjectStore = create<ProjectStore>()(
+  subscribeWithSelector((set, get) => ({
+    ...initialState,
+
+    // Image actions
+    setImage: (path, data) =>
+      set((state) => {
+        // Reset color stops when loading a new image
+        const enabledFilaments = state.filaments
+          .filter((f) => f.enabled)
+          .sort((a, b) => a.orderIndex - b.orderIndex);
+        
+        const { minDepthMm, maxDepthMm } = state.modelGeometry;
+        const range = maxDepthMm - minDepthMm;
+        const step = range / (enabledFilaments.length || 1);
+        
+        const stops = enabledFilaments.map((f, i) => ({
+          filamentId: f.id,
+          thresholdZMm: minDepthMm + step * (i + 1),
+        }));
+
+        return {
+          imagePath: path,
+          imageData: data,
+          isDirty: true,
+          meshReady: false,
+          colorPlan: { ...state.colorPlan, stops },
+          // Reset mesh resolution manual flag when loading new image
+          printSettings: {
+            ...state.printSettings,
+            meshResolutionManuallySet: false,
+          },
+        };
+      }),
+
+    clearImage: () =>
+      set({
+        imagePath: null,
+        imageData: null,
+        heightmapData: null,
+        previewData: null,
+        meshReady: false,
+        isDirty: true,
+      }),
+
+    // Filament actions
+    addFilament: (filament) =>
+      set((state) => ({
+        filaments: [...state.filaments, filament],
+        isDirty: true,
+      })),
+
+    updateFilament: (id, updates) =>
+      set((state) => ({
+        filaments: state.filaments.map((f) =>
+          f.id === id ? { ...f, ...updates } : f
+        ),
+        isDirty: true,
+      })),
+
+    removeFilament: (id) =>
+      set((state) => ({
+        filaments: state.filaments.filter((f) => f.id !== id),
+        colorPlan: {
+          ...state.colorPlan,
+          stops: state.colorPlan.stops.filter((s) => s.filamentId !== id),
+        },
+        isDirty: true,
+      })),
+
+    toggleFilament: (id) =>
+      set((state) => ({
+        filaments: state.filaments.map((f) =>
+          f.id === id ? { ...f, enabled: !f.enabled } : f
+        ),
+        isDirty: true,
+      })),
+
+    reorderFilaments: (filaments) =>
+      set({
+        filaments: filaments.map((f, i) => ({ ...f, orderIndex: i })),
+        isDirty: true,
+      }),
+
+    // Settings actions
+    setModelGeometry: (settings) =>
+      set((state) => ({
+        modelGeometry: { ...state.modelGeometry, ...settings },
+        isDirty: true,
+        meshReady: false,
+      })),
+
+    setPrintSettings: (settings) =>
+      set((state) => {
+        const newSettings = { ...state.printSettings, ...settings };
+        
+        // Check if resolution-affecting fields changed
+        const resolutionAffectingFields: (keyof PrintSettings)[] = ['widthMm', 'heightMm', 'nozzleDiameter'];
+        const affectsResolution = resolutionAffectingFields.some(
+          field => settings[field] !== undefined && settings[field] !== state.printSettings[field]
+        );
+        
+        // If affects resolution and user has manually set it, we'll need to show modal
+        // The component calling this should handle the modal logic
+        
+        return {
+          printSettings: newSettings,
+          isDirty: true,
+          meshReady: false,
+        };
+      }),
+
+    // Mesh resolution actions
+    setMeshResolution: (value, manual = false) =>
+      set((state) => ({
+        printSettings: {
+          ...state.printSettings,
+          meshResolution: value,
+          meshResolutionManuallySet: manual ? true : state.printSettings.meshResolutionManuallySet,
+        },
+        isDirty: true,
+      })),
+
+    updateMeshResolutionFromSettings: () =>
+      set((state) => {
+        const { widthMm, heightMm, nozzleDiameter } = state.printSettings;
+        const { heightmapWidth, heightmapHeight } = state;
+        
+        if (heightmapWidth === 0 || heightmapHeight === 0) {
+          return state; // No image loaded
+        }
+        
+        const recommended = calculateRecommendedResolution(
+          widthMm,
+          heightMm,
+          nozzleDiameter,
+          heightmapWidth,
+          heightmapHeight
+        );
+        
+        return {
+          printSettings: {
+            ...state.printSettings,
+            meshResolution: recommended,
+            meshResolutionManuallySet: false,
+          },
+        };
+      }),
+
+    showResolutionChangeModal: (newRecommended) =>
+      set({
+        showResolutionModal: true,
+        pendingResolutionChange: newRecommended,
+      }),
+
+    hideResolutionChangeModal: () =>
+      set({
+        showResolutionModal: false,
+        pendingResolutionChange: null,
+      }),
+
+    acceptPendingResolution: () =>
+      set((state) => ({
+        printSettings: {
+          ...state.printSettings,
+          meshResolution: state.pendingResolutionChange ?? state.printSettings.meshResolution,
+          meshResolutionManuallySet: false,
+        },
+        showResolutionModal: false,
+        pendingResolutionChange: null,
+      })),
+
+    rejectPendingResolution: () =>
+      set({
+        showResolutionModal: false,
+        pendingResolutionChange: null,
+      }),
+
+    setColorPlan: (settings) =>
+      set((state) => ({
+        colorPlan: { ...state.colorPlan, ...settings },
+        isDirty: true,
+      })),
+
+    setLighting: (settings) =>
+      set((state) => ({
+        lighting: { ...state.lighting, ...settings },
+      })),
+
+    // Color stops actions
+    updateColorStop: (filamentId, thresholdZMm) =>
+      set((state) => {
+        const existingIndex = state.colorPlan.stops.findIndex(
+          (s) => s.filamentId === filamentId
+        );
+        let newStops: ColorStop[];
+
+        if (existingIndex >= 0) {
+          newStops = state.colorPlan.stops.map((s) =>
+            s.filamentId === filamentId ? { ...s, thresholdZMm } : s
+          );
+        } else {
+          newStops = [...state.colorPlan.stops, { filamentId, thresholdZMm }];
+        }
+
+        // Sort stops by threshold
+        newStops.sort((a, b) => a.thresholdZMm - b.thresholdZMm);
+
+        return {
+          colorPlan: { ...state.colorPlan, stops: newStops },
+          isDirty: true,
+        };
+      }),
+
+    initializeColorStops: () =>
+      set((state) => {
+        const enabledFilaments = state.filaments
+          .filter((f) => f.enabled)
+          .sort((a, b) => a.orderIndex - b.orderIndex);
+
+        if (enabledFilaments.length === 0) return state;
+
+        const { minDepthMm, maxDepthMm } = state.modelGeometry;
+        const range = maxDepthMm - minDepthMm;
+        const step = range / enabledFilaments.length;
+
+        const stops: ColorStop[] = enabledFilaments.map((f, i) => ({
+          filamentId: f.id,
+          thresholdZMm: minDepthMm + step * (i + 1),
+        }));
+
+        return {
+          colorPlan: { ...state.colorPlan, stops },
+        };
+      }),
+
+    // Processing state
+    setHeightmapData: (data, width, height) =>
+      set((state) => {
+        // Recalculate mesh resolution if not manually set
+        let newResolution = state.printSettings.meshResolution;
+        if (!state.printSettings.meshResolutionManuallySet) {
+          newResolution = calculateRecommendedResolution(
+            state.printSettings.widthMm,
+            state.printSettings.heightMm,
+            state.printSettings.nozzleDiameter,
+            width,
+            height
+          );
+        }
+        
+        return {
+          heightmapData: data,
+          heightmapWidth: width,
+          heightmapHeight: height,
+          printSettings: {
+            ...state.printSettings,
+            meshResolution: newResolution,
+          },
+        };
+      }),
+
+    setPreviewData: (data) => set({ previewData: data }),
+
+    setMeshReady: (ready) => set({ meshReady: ready }),
+
+    setSwaps: (swaps) => set({ swaps }),
+
+    setProcessing: (processing) => set({ isProcessing: processing }),
+
+    // UI state
+    setActiveView: (view) => set({ activeView: view }),
+
+    setLiveUpdate: (enabled) => set({ liveUpdate: enabled }),
+
+    setLockAspectRatio: (locked) => set({ lockAspectRatio: locked }),
+
+    setImageAspectRatio: (ratio) => set({ imageAspectRatio: ratio }),
+
+    markDirty: () => set({ isDirty: true }),
+
+    markClean: () => set({ isDirty: false }),
+
+    // Project actions
+    resetProject: () => set(initialState),
+
+    loadProject: (state) =>
+      set((current) => ({
+        ...current,
+        ...state,
+        isDirty: false,
+      })),
+
+    getProjectJSON: () => {
+      const state = get();
+      const project = {
+        imagePath: state.imagePath,
+        imageData: state.imageData,
+        filaments: state.filaments,
+        modelGeometry: state.modelGeometry,
+        printSettings: state.printSettings,
+        colorPlan: state.colorPlan,
+        lighting: state.lighting,
+      };
+      return JSON.stringify(project, null, 2);
+    },
+  }))
+);
+
+// Selector hooks for derived state
+export const useEnabledFilaments = () => {
+  const filaments = useProjectStore((state) => state.filaments);
+  return useMemo(
+    () =>
+      filaments
+        .filter((f) => f.enabled)
+        .sort((a, b) => a.orderIndex - b.orderIndex),
+    [filaments]
+  );
+};
+
+export const useActualDepth = () =>
+  useProjectStore(
+    (state) => state.modelGeometry.maxDepthMm - state.modelGeometry.minDepthMm
+  );
+
+export const useTotalLayers = () =>
+  useProjectStore((state) =>
+    Math.ceil(state.modelGeometry.maxDepthMm / state.printSettings.layerHeightMm)
+  );
+
+// Selector for recommended mesh resolution
+export const useRecommendedResolution = () => {
+  const widthMm = useProjectStore((state) => state.printSettings.widthMm);
+  const heightMm = useProjectStore((state) => state.printSettings.heightMm);
+  const nozzleDiameter = useProjectStore((state) => state.printSettings.nozzleDiameter);
+  const heightmapWidth = useProjectStore((state) => state.heightmapWidth);
+  const heightmapHeight = useProjectStore((state) => state.heightmapHeight);
+  
+  return useMemo(() => {
+    if (heightmapWidth === 0 || heightmapHeight === 0) {
+      return 150; // Default when no image
+    }
+    return calculateRecommendedResolution(
+      widthMm,
+      heightMm,
+      nozzleDiameter,
+      heightmapWidth,
+      heightmapHeight
+    );
+  }, [widthMm, heightMm, nozzleDiameter, heightmapWidth, heightmapHeight]);
+};
+
+// Selector for image resolution (max dimension)
+export const useImageResolution = () => {
+  const heightmapWidth = useProjectStore((state) => state.heightmapWidth);
+  const heightmapHeight = useProjectStore((state) => state.heightmapHeight);
+  return Math.max(heightmapWidth, heightmapHeight);
+};
