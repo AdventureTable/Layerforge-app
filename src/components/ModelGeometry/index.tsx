@@ -353,6 +353,21 @@ export function ModelGeometry() {
         />
       </Group>
 
+      <Group gap="xs" grow>
+        <Tooltip label="First layer height from your slicer settings (for accurate layer count)">
+          <NumberInput
+            label="First Layer (mm)"
+            size="xs"
+            value={printSettings.firstLayerHeightMm}
+            onChange={(v) => handlePrintChange('firstLayerHeightMm', Number(v) || 0.16)}
+            min={0.08}
+            max={0.4}
+            step={0.02}
+            decimalScale={2}
+          />
+        </Tooltip>
+      </Group>
+
       <Divider />
 
       {/* Mesh Resolution Settings */}

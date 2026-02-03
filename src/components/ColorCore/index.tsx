@@ -1,5 +1,5 @@
 import { Box, Text, Stack } from '@mantine/core';
-import { useProjectStore, useEnabledFilaments, useTotalLayers } from '../../stores/projectStore';
+import { useProjectStore, useEnabledFilaments, useTotalLayers, layerToModelZ } from '../../stores/projectStore';
 
 export function ColorCore() {
   const { modelGeometry, printSettings, colorPlan } = useProjectStore();
@@ -7,13 +7,14 @@ export function ColorCore() {
   const totalLayers = useTotalLayers();
 
   const { minDepthMm, maxDepthMm } = modelGeometry;
-  const { layerHeightMm } = printSettings;
+  const { layerHeightMm, firstLayerHeightMm, baseLayerMm } = printSettings;
   const depthRange = maxDepthMm - minDepthMm;
 
-  // Create segments based on color stops
-  const sortedStops = [...colorPlan.stops].sort(
-    (a, b) => a.thresholdZMm - b.thresholdZMm
-  );
+  // Create segments based on color stops (only enabled filaments)
+  const enabledFilamentIds = new Set(enabledFilaments.map(f => f.id));
+  const sortedStops = [...colorPlan.stops]
+    .filter(stop => enabledFilamentIds.has(stop.filamentId))
+    .sort((a, b) => a.thresholdZMm - b.thresholdZMm);
 
   // Build segments
   const segments: Array<{
@@ -43,12 +44,20 @@ export function ColorCore() {
   }
 
   // Generate layer marks
+  // Convert layer number to depth value (model Z - baseLayerMm)
+  // Fallback firstLayerHeightMm to baseLayerMm for backwards compatibility
+  const firstLayer = firstLayerHeightMm ?? baseLayerMm;
+  const layerToDepth = (layer: number) => {
+    const modelZ = layerToModelZ(layer, firstLayer, layerHeightMm);
+    return modelZ - baseLayerMm;
+  };
+
   const layerMarks: Array<{ layer: number; yPercent: number }> = [];
   const markStep = Math.max(1, Math.floor(totalLayers / 10)); // Show ~10 marks
   for (let i = 0; i <= totalLayers; i += markStep) {
-    const zMm = i * layerHeightMm;
-    if (zMm >= minDepthMm && zMm <= maxDepthMm) {
-      const yPercent = ((zMm - minDepthMm) / depthRange) * 100;
+    const depthMm = layerToDepth(i);
+    if (depthMm >= minDepthMm && depthMm <= maxDepthMm) {
+      const yPercent = ((depthMm - minDepthMm) / depthRange) * 100;
       layerMarks.push({ layer: i, yPercent });
     }
   }

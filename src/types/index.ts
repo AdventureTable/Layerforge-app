@@ -80,6 +80,7 @@ export interface ModelGeometrySettings {
 export interface PrintSettings {
   layerHeightMm: number;
   baseLayerMm: number;
+  firstLayerHeightMm: number;  // Slicer's first layer height (for accurate layer count)
   widthMm: number;
   heightMm: number;
   borderWidthMm: number;
@@ -168,6 +169,7 @@ export const DEFAULT_MODEL_GEOMETRY: ModelGeometrySettings = {
 export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   layerHeightMm: 0.08,
   baseLayerMm: 0.16,
+  firstLayerHeightMm: 0.16,  // Default same as baseLayerMm
   widthMm: 100,
   heightMm: 100,
   borderWidthMm: 2.0,

@@ -12,7 +12,7 @@ const terminalLines: TerminalLine[] = [
   { text: '> Input: imagen.png', type: 'normal', delay: 0 },
   { text: '  → height map generado', type: 'highlight', delay: 800 },
   { text: '> Layers: planificando cambios de color...', type: 'normal', delay: 1600 },
-  { text: '> Export: generando STL / 3MF', type: 'normal', delay: 2400 },
+  { text: '> Export: generando STL', type: 'normal', delay: 2400 },
   { text: '                              → hecho.', type: 'success', delay: 3200 },
   { text: '', type: 'normal', delay: 3600 },
   { text: 'ok: color plan exported', type: 'success', delay: 4000 },

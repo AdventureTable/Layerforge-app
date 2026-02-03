@@ -60,7 +60,7 @@ export function InterfaceShowcase() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   return (
-    <section className="landing-section">
+    <section id="interface" className="landing-section">
       <Stack gap="xl" align="center">
         <Box ta="center" mb={isMobile ? "sm" : "lg"}>
           <Text size="sm" c="forge.4" fw={500} mb="xs">

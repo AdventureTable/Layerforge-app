@@ -4,6 +4,7 @@ import { TerminalDemo } from './components/TerminalDemo';
 import { InterfaceShowcase } from './components/InterfaceShowcase';
 import { Features } from './components/Features';
 import { Philosophy } from './components/Philosophy';
+import { Manifesto } from './components/Manifesto';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { Footer } from './components/Footer';
@@ -18,6 +19,7 @@ export function Landing() {
         <InterfaceShowcase />
         <Features />
         <Philosophy />
+        <Manifesto />
         <Pricing />
         <FAQ />
         <Footer />

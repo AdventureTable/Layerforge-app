@@ -209,16 +209,23 @@ export function Header() {
       }}
     >
       <Group gap="md">
-        <Title 
-          order={4} 
-          style={{ 
-            color: '#1FAE7A',
-            textShadow: '0 0 20px rgba(31, 174, 122, 0.5)',
-            letterSpacing: '0.5px',
-          }}
-        >
-          LayerForge
-        </Title>
+        <Group gap="xs" align="center">
+          <img 
+            src="/landing/assets/icon.png" 
+            alt="LayerForge" 
+            style={{ height: 28, width: 28 }}
+          />
+          <Title 
+            order={4} 
+            style={{ 
+              color: '#1FAE7A',
+              textShadow: '0 0 20px rgba(31, 174, 122, 0.5)',
+              letterSpacing: '0.5px',
+            }}
+          >
+            LayerForge
+          </Title>
+        </Group>
         {isDirty && (
           <Badge 
             size="xs" 

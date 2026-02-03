@@ -32,7 +32,7 @@ const features: FeatureProps[] = [
     icon: '◫',
   },
   {
-    title: 'Export STL / 3MF',
+    title: 'Export STL + Plan de cambios',
     description: 'Tu archivo. Tu slicer. Tu impresora.',
     icon: '↗',
   },

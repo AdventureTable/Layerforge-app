@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, Group, Stack, Text, Slider, Badge, ActionIcon } from '@mantine/core';
-import { useProjectStore, useEnabledFilaments } from '../../stores/projectStore';
+import { useProjectStore, useEnabledFilaments, depthToLayer } from '../../stores/projectStore';
 
 // Helper to determine if a color is light (for text contrast)
 function isLightColor(hexColor: string): boolean {
@@ -27,7 +27,7 @@ export function ColorSliders() {
   const enabledFilaments = useEnabledFilaments();
 
   const { minDepthMm, maxDepthMm } = modelGeometry;
-  const { layerHeightMm } = printSettings;
+  const { layerHeightMm, firstLayerHeightMm, baseLayerMm } = printSettings;
 
   // Initialize stops when filaments change or when there are no stops
   useEffect(() => {
@@ -66,10 +66,11 @@ export function ColorSliders() {
     }
   }, [imageData, enabledFilaments.length, colorPlan.stops.length, initializeColorStops]);
 
-  // Get sorted stops by threshold
-  const sortedStops = [...colorPlan.stops].sort(
-    (a, b) => a.thresholdZMm - b.thresholdZMm
-  );
+  // Get sorted stops by threshold, filtering only enabled filaments
+  const enabledFilamentIds = new Set(enabledFilaments.map(f => f.id));
+  const sortedStops = [...colorPlan.stops]
+    .filter(stop => enabledFilamentIds.has(stop.filamentId))
+    .sort((a, b) => a.thresholdZMm - b.thresholdZMm);
 
   // Find min/max for clamping each slider
   const getSliderBounds = (filamentId: string) => {
@@ -89,7 +90,12 @@ export function ColorSliders() {
     updateColorStop(filamentId, clampedValue);
   };
 
-  const depthToLayer = (depth: number) => Math.round(depth / layerHeightMm);
+  // Convert depth threshold to layer number
+  // Add baseLayerMm since that's added to depths in mesh generation
+  // Fallback firstLayerHeightMm to baseLayerMm for backwards compatibility
+  const firstLayer = firstLayerHeightMm ?? baseLayerMm;
+  const thresholdToLayer = (depth: number) => 
+    depthToLayer(depth + baseLayerMm, firstLayer, layerHeightMm);
 
   // Move filament up/down in order
   const moveFilament = (filamentId: string, direction: 'up' | 'down') => {
@@ -142,7 +148,7 @@ export function ColorSliders() {
             if (!filament) return null;
             
             const value = stop.thresholdZMm;
-            const layer = depthToLayer(value);
+            const layer = thresholdToLayer(value);
             const canMoveUp = index > 0;
             const canMoveDown = index < sortedStops.length - 1;
 

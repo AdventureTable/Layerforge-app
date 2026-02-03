@@ -1,0 +1,23 @@
+{
+  "name": "LayerForge",
+  "short_name": "LayerForge",
+  "description": "Convierte una imagen en un relieve multicolor por capas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0D0F",
+  "theme_color": "#1FAE7A",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/landing/assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

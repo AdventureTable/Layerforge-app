@@ -15,6 +15,15 @@ export function Footer() {
           Built out of curiosity.
         </Text>
         
+        <img 
+          src="/landing/assets/logo-horizontal.png" 
+          alt="LayerForge" 
+          style={{ 
+            height: isMobile ? 40 : 50,
+            filter: 'drop-shadow(0 0 10px rgba(31, 174, 122, 0.3))',
+          }}
+        />
+        
         <Text 
           size={isMobile ? "lg" : "xl"}
           fw={600}
@@ -32,7 +41,7 @@ export function Footer() {
           maw={600}
         >
           <Group justify="center" gap={isMobile ? "lg" : "xl"}>
-            <Anchor href="#" c="dimmed" size={isMobile ? "xs" : "sm"} style={{ textDecoration: 'none' }}>
+            <Anchor href="#manifesto" c="dimmed" size={isMobile ? "xs" : "sm"} style={{ textDecoration: 'none' }}>
               Manifiesto
             </Anchor>
             <Anchor href="#" c="dimmed" size={isMobile ? "xs" : "sm"} style={{ textDecoration: 'none' }}>

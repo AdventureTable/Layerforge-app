@@ -2,10 +2,15 @@ import { Box, Title, Text, Button, Group, Stack } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { NebulaScene } from '../three/NebulaScene';
 import { Character3D } from '../three/Character3D';
+import { STRIPE_PAYMENT_LINK } from '../constants';
 
 export function Hero() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
+  const stripeLink = STRIPE_PAYMENT_LINK.trim();
+  const purchaseHref = stripeLink.length > 0 ? stripeLink : '#pricing';
+  const purchaseTarget = stripeLink.length > 0 ? '_blank' : undefined;
+  const purchaseRel = stripeLink.length > 0 ? 'noopener noreferrer' : undefined;
   
   return (
     <section className="hero">
@@ -35,7 +40,7 @@ export function Hero() {
           
           <ul className="bullet-list">
             <li>
-              <Text size={isMobile ? "md" : "lg"} c="gray.3">Exporta STL / 3MF</Text>
+              <Text size={isMobile ? "md" : "lg"} c="gray.3">Exporta STL + Plan de cambios</Text>
             </li>
             <li>
               <Text size={isMobile ? "md" : "lg"} c="gray.3">Planifica cambios por Z</Text>
@@ -51,6 +56,10 @@ export function Hero() {
                 size="md"
                 fullWidth
                 className="cta-primary"
+                component="a"
+                href={purchaseHref}
+                target={purchaseTarget}
+                rel={purchaseRel}
                 styles={{
                   root: {
                     padding: '12px 24px',
@@ -66,6 +75,8 @@ export function Hero() {
                   size="md"
                   variant="outline"
                   className="cta-secondary"
+                  component="a"
+                  href="#interface"
                 >
                   Ver qué hace
                 </Button>
@@ -73,6 +84,8 @@ export function Hero() {
                   size="md"
                   variant="subtle"
                   c="forge.2"
+                  component="a"
+                  href="#manifesto"
                 >
                   Manifiesto
                 </Button>
@@ -83,6 +96,10 @@ export function Hero() {
               <Button
                 size="lg"
                 className="cta-primary"
+                component="a"
+                href={purchaseHref}
+                target={purchaseTarget}
+                rel={purchaseRel}
                 styles={{
                   root: {
                     padding: '12px 32px',
@@ -97,6 +114,8 @@ export function Hero() {
                 size="lg"
                 variant="outline"
                 className="cta-secondary"
+                component="a"
+                href="#interface"
                 styles={{
                   root: {
                     padding: '12px 24px',
@@ -109,6 +128,8 @@ export function Hero() {
                 size="lg"
                 variant="subtle"
                 c="forge.2"
+                component="a"
+                href="#manifesto"
                 styles={{
                   root: {
                     padding: '12px 24px',

@@ -1,19 +1,24 @@
 import { Box, Text, Title, Stack, Button, List, ThemeIcon, Group, Badge } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import { STRIPE_PAYMENT_LINK } from '../constants';
 
 const features = [
   'Pago único',
   'Actualizaciones incluidas',
   'Uso personal y comercial',
   'Colores ilimitados',
-  'Export STL / 3MF',
+  'Export STL + Plan de cambios',
   'Plan de cambios por altura',
 ];
 
 export function Pricing() {
   const { ref, isVisible } = useScrollAnimation<HTMLElement>({ threshold: 0.2 });
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const stripeLink = STRIPE_PAYMENT_LINK.trim();
+  const purchaseHref = stripeLink.length > 0 ? stripeLink : '#pricing';
+  const purchaseTarget = stripeLink.length > 0 ? '_blank' : undefined;
+  const purchaseRel = stripeLink.length > 0 ? 'noopener noreferrer' : undefined;
   
   return (
     <section 
@@ -88,6 +93,10 @@ export function Pricing() {
               fullWidth
               className="cta-primary"
               mt={isMobile ? "sm" : "md"}
+              component="a"
+              href={purchaseHref}
+              target={purchaseTarget}
+              rel={purchaseRel}
               styles={{
                 root: {
                   height: isMobile ? 48 : 56,

@@ -19,6 +19,34 @@ import {
   calculateRecommendedResolution,
 } from '../types';
 
+// localStorage key for persisting filaments
+const FILAMENTS_STORAGE_KEY = 'layerforge-filaments';
+
+// Load saved filaments from localStorage
+const loadSavedFilaments = (): Filament[] => {
+  try {
+    const saved = localStorage.getItem(FILAMENTS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load saved filaments:', error);
+  }
+  return DEFAULT_FILAMENTS;
+};
+
+// Save filaments to localStorage
+const saveFilaments = (filaments: Filament[]) => {
+  try {
+    localStorage.setItem(FILAMENTS_STORAGE_KEY, JSON.stringify(filaments));
+  } catch (error) {
+    console.warn('Failed to save filaments:', error);
+  }
+};
+
 // Extended state for resolution change modal
 interface ResolutionModalState {
   showResolutionModal: boolean;
@@ -82,7 +110,7 @@ const initialState: ProjectState & ResolutionModalState = {
   imagePath: null,
   imageData: null,
   imageAspectRatio: 1,
-  filaments: DEFAULT_FILAMENTS,
+  filaments: loadSavedFilaments(),
   modelGeometry: DEFAULT_MODEL_GEOMETRY,
   printSettings: DEFAULT_PRINT_SETTINGS,
   colorPlan: {
@@ -415,6 +443,14 @@ export const useProjectStore = create<ProjectStore>()(
   }))
 );
 
+// Subscribe to filament changes and persist to localStorage
+useProjectStore.subscribe(
+  (state) => state.filaments,
+  (filaments) => {
+    saveFilaments(filaments);
+  }
+);
+
 // Selector hooks for derived state
 export const useEnabledFilaments = () => {
   const filaments = useProjectStore((state) => state.filaments);
@@ -432,10 +468,70 @@ export const useActualDepth = () =>
     (state) => state.modelGeometry.maxDepthMm - state.modelGeometry.minDepthMm
   );
 
+// Helper function to convert depth (in mm) to layer number
+// Accounts for first layer having different height than subsequent layers
+export const depthToLayer = (
+  depthMm: number,
+  firstLayerHeightMm: number,
+  layerHeightMm: number
+): number => {
+  if (depthMm <= 0) return 0;
+  if (depthMm <= firstLayerHeightMm) return 1;
+  
+  // Calculate remaining height after first layer
+  const remainingHeight = depthMm - firstLayerHeightMm;
+  const additionalLayers = remainingHeight / layerHeightMm;
+  
+  // Round to handle floating point precision (e.g., 28.000000000000004 -> 28)
+  // Only round if very close to an integer (within 0.0001)
+  const roundedLayers = Math.abs(additionalLayers - Math.round(additionalLayers)) < 0.0001
+    ? Math.round(additionalLayers)
+    : Math.ceil(additionalLayers);
+  
+  return 1 + roundedLayers;
+};
+
+// Helper function to convert layer number to Z height in the model
+// Inverse of depthToLayer
+export const layerToModelZ = (
+  layer: number,
+  firstLayerHeightMm: number,
+  layerHeightMm: number
+): number => {
+  if (layer <= 0) return 0;
+  if (layer === 1) return firstLayerHeightMm;
+  return firstLayerHeightMm + (layer - 1) * layerHeightMm;
+};
+
+// Calculate total model height (includes baseLayerMm added during mesh generation)
+// When border is enabled, total height is the max of relief height and border height
+export const useTotalModelHeight = () =>
+  useProjectStore((state) => {
+    const { maxDepthMm } = state.modelGeometry;
+    const { baseLayerMm, hasBorder, borderDepthMm } = state.printSettings;
+    
+    const reliefHeight = maxDepthMm + baseLayerMm;
+    const borderHeight = hasBorder ? borderDepthMm + baseLayerMm : 0;
+    
+    return Math.max(reliefHeight, borderHeight);
+  });
+
 export const useTotalLayers = () =>
-  useProjectStore((state) =>
-    Math.ceil(state.modelGeometry.maxDepthMm / state.printSettings.layerHeightMm)
-  );
+  useProjectStore((state) => {
+    const { maxDepthMm } = state.modelGeometry;
+    const { baseLayerMm, hasBorder, borderDepthMm, firstLayerHeightMm, layerHeightMm } = state.printSettings;
+    
+    // Total height is the max of relief and border (when enabled)
+    const reliefHeight = maxDepthMm + baseLayerMm;
+    const borderHeight = hasBorder ? borderDepthMm + baseLayerMm : 0;
+    const totalHeight = Math.max(reliefHeight, borderHeight);
+    
+    // Fallback for firstLayerHeightMm if not set (for backwards compatibility)
+    // Default to baseLayerMm which is typically 0.16mm (same as default firstLayerHeightMm)
+    const firstLayer = firstLayerHeightMm ?? baseLayerMm;
+    
+    return depthToLayer(totalHeight, firstLayer, layerHeightMm);
+  });
 
 // Selector for recommended mesh resolution
 export const useRecommendedResolution = () => {

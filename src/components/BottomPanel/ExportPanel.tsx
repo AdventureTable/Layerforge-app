@@ -1,5 +1,5 @@
 import { Stack, Text, Button } from '@mantine/core';
-import { useProjectStore } from '../../stores/projectStore';
+import { useProjectStore, depthToLayer } from '../../stores/projectStore';
 
 // Check if running in Tauri
 const isTauri = () => {
@@ -77,12 +77,16 @@ export function ExportPanel() {
 
   const handleExportPlan = async (format: 'txt' | 'json') => {
     // Compute swaps from color plan
+    // Add baseLayerMm to threshold since mesh generation adds it to depths
+    // Fallback firstLayerHeightMm to baseLayerMm for backwards compatibility
+    const firstLayer = printSettings.firstLayerHeightMm ?? printSettings.baseLayerMm;
     const swapEntries = colorPlan.stops.map((stop) => {
-      const layer = Math.round(stop.thresholdZMm / printSettings.layerHeightMm);
+      const zInModel = stop.thresholdZMm + printSettings.baseLayerMm;
+      const layer = depthToLayer(zInModel, firstLayer, printSettings.layerHeightMm);
       const filament = filaments.find(f => f.id === stop.filamentId);
       return {
         layer,
-        z_mm: stop.thresholdZMm,
+        z_mm: zInModel,
         filament_id: stop.filamentId,
         filament_name: filament?.name || stop.filamentId,
       };
@@ -95,6 +99,7 @@ export function ExportPanel() {
         width_mm: printSettings.widthMm,
         height_mm: printSettings.heightMm,
         layer_height_mm: printSettings.layerHeightMm,
+        first_layer_height_mm: printSettings.firstLayerHeightMm,
         base_layer_mm: printSettings.baseLayerMm,
         has_border: printSettings.hasBorder,
         border_width_mm: printSettings.borderWidthMm,
@@ -136,6 +141,7 @@ export function ExportPanel() {
         `Dimensions: ${printSettings.widthMm} x ${printSettings.heightMm} mm`,
         `Depth Range: ${modelGeometry.minDepthMm} - ${modelGeometry.maxDepthMm} mm`,
         `Layer Height: ${printSettings.layerHeightMm} mm`,
+        `First Layer Height: ${printSettings.firstLayerHeightMm} mm`,
         '',
         'FILAMENTS',
         '-'.repeat(20),
