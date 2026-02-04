@@ -1,10 +1,12 @@
 import { Box, Text, Stack } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export function Philosophy() {
   const { ref, isVisible } = useScrollAnimation<HTMLElement>({ threshold: 0.3 });
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const t = useTranslation();
   
   return (
     <section 
@@ -25,9 +27,9 @@ export function Philosophy() {
           style={{ lineHeight: 1.4 }}
           className="philosophy-title"
         >
-          Una herramienta sencilla{' '}
-          <span className="glow-text">no debería costar</span>
-          {' '}lo mismo que una impresora.
+          {t.philosophy.title1}{' '}
+          <span className="glow-text">{t.philosophy.titleHighlight}</span>
+          {' '}{t.philosophy.title2}
         </Text>
         
         <Text 
@@ -36,7 +38,7 @@ export function Philosophy() {
           ta="center"
           maw={600}
         >
-          Tampoco debería ponerse rara cuando quieres vender lo que fabricas.
+          {t.philosophy.subtitle}
         </Text>
         
         <Box 
@@ -50,7 +52,7 @@ export function Philosophy() {
             ta="center"
             fs="italic"
           >
-            LayerForge existe porque a veces es más divertido construir una herramienta que discutirla.
+            {t.philosophy.quote}
           </Text>
         </Box>
       </Stack>

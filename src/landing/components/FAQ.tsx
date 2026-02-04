@@ -1,41 +1,20 @@
 import { Box, Text, Title, Stack, Accordion } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-
-const faqs = [
-  {
-    question: '¿Es un slicer?',
-    answer: 'No. LayerForge genera el modelo y el plan de cambios por altura. Luego usas tu slicer habitual.',
-  },
-  {
-    question: '¿Cómo hago los cambios de color?',
-    answer: 'Por capa (pausas / color change) o con AMS/MMU/CFS. LayerForge te da las alturas.',
-  },
-  {
-    question: '¿Puedo vender mis impresiones?',
-    answer: 'Sí. Ese es literalmente el punto.',
-  },
-  {
-    question: '¿Va a tener suscripción?',
-    answer: 'No. Si algún día la tuviera, ya no sería LayerForge.',
-  },
-  {
-    question: '¿Por qué es tan barato?',
-    answer: 'Porque no necesita ser caro.',
-  },
-];
+import { useTranslation } from '../i18n/LanguageContext';
 
 export function FAQ() {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const t = useTranslation();
   
   return (
     <section className="landing-section">
       <Stack gap={isMobile ? "lg" : "xl"} maw={700} mx="auto">
         <Box ta="center" mb={isMobile ? "sm" : "lg"}>
           <Text size="sm" c="forge.4" fw={500} mb="xs">
-            FAQ
+            {t.faq.label}
           </Text>
           <Title order={2} size={isMobile ? "1.5rem" : undefined} c="white">
-            Preguntas frecuentes
+            {t.faq.title}
           </Title>
         </Box>
         
@@ -67,7 +46,7 @@ export function FAQ() {
             },
           }}
         >
-          {faqs.map((faq, index) => (
+          {t.faq.items.map((faq, index) => (
             <Accordion.Item key={index} value={`faq-${index}`}>
               <Accordion.Control>{faq.question}</Accordion.Control>
               <Accordion.Panel>{faq.answer}</Accordion.Panel>

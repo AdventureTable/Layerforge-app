@@ -2,15 +2,12 @@ import { Box, Title, Text, Button, Group, Stack } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { NebulaScene } from '../three/NebulaScene';
 import { Character3D } from '../three/Character3D';
-import { STRIPE_PAYMENT_LINK } from '../constants';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export function Hero() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
-  const stripeLink = STRIPE_PAYMENT_LINK.trim();
-  const purchaseHref = stripeLink.length > 0 ? stripeLink : '#pricing';
-  const purchaseTarget = stripeLink.length > 0 ? '_blank' : undefined;
-  const purchaseRel = stripeLink.length > 0 ? 'noopener noreferrer' : undefined;
+  const t = useTranslation();
   
   return (
     <section className="hero">
@@ -32,21 +29,21 @@ export function Hero() {
               style={{ lineHeight: 1.2 }}
               className="hero__title"
             >
-              Convierte una imagen en un{' '}
-              <span className="glow-text glow-text--strong">relieve multicolor</span>
-              {' '}de otra dimensión.
+              {t.hero.title}{' '}
+              <span className="glow-text glow-text--strong">{t.hero.titleHighlight}</span>
+              {' '}{t.hero.titleEnd}
             </Title>
           </Box>
           
           <ul className="bullet-list">
             <li>
-              <Text size={isMobile ? "md" : "lg"} c="gray.3">Exporta STL + Plan de cambios</Text>
+              <Text size={isMobile ? "md" : "lg"} c="gray.3">{t.hero.bullet1}</Text>
             </li>
             <li>
-              <Text size={isMobile ? "md" : "lg"} c="gray.3">Planifica cambios por Z</Text>
+              <Text size={isMobile ? "md" : "lg"} c="gray.3">{t.hero.bullet2}</Text>
             </li>
             <li>
-              <Text size={isMobile ? "md" : "lg"} c="gray.3">Colores ilimitados</Text>
+              <Text size={isMobile ? "md" : "lg"} c="gray.3">{t.hero.bullet3}</Text>
             </li>
           </ul>
           
@@ -57,9 +54,7 @@ export function Hero() {
                 fullWidth
                 className="cta-primary"
                 component="a"
-                href={purchaseHref}
-                target={purchaseTarget}
-                rel={purchaseRel}
+                href="#download"
                 styles={{
                   root: {
                     padding: '12px 24px',
@@ -68,7 +63,7 @@ export function Hero() {
                   }
                 }}
               >
-                Pruébalo por 5€
+                {t.hero.cta}
               </Button>
               <Group gap="sm" grow>
                 <Button
@@ -78,7 +73,7 @@ export function Hero() {
                   component="a"
                   href="#interface"
                 >
-                  Ver qué hace
+                  {t.hero.ctaSecondary}
                 </Button>
                 <Button
                   size="md"
@@ -87,7 +82,7 @@ export function Hero() {
                   component="a"
                   href="#manifesto"
                 >
-                  Manifiesto
+                  {t.hero.ctaManifesto}
                 </Button>
               </Group>
             </Stack>
@@ -97,9 +92,7 @@ export function Hero() {
                 size="lg"
                 className="cta-primary"
                 component="a"
-                href={purchaseHref}
-                target={purchaseTarget}
-                rel={purchaseRel}
+                href="#download"
                 styles={{
                   root: {
                     padding: '12px 32px',
@@ -108,7 +101,7 @@ export function Hero() {
                   }
                 }}
               >
-                Pruébalo por 5€
+                {t.hero.cta}
               </Button>
               <Button
                 size="lg"
@@ -122,7 +115,7 @@ export function Hero() {
                   }
                 }}
               >
-                Ver qué hace
+                {t.hero.ctaSecondary}
               </Button>
               <Button
                 size="lg"
@@ -136,13 +129,13 @@ export function Hero() {
                   }
                 }}
               >
-                Leer el manifiesto
+                {t.hero.ctaManifesto}
               </Button>
             </Group>
           )}
           
           <Text size={isMobile ? "xs" : "sm"} c="dimmed">
-            Pago único · Sin suscripción · Uso comercial permitido
+            {t.hero.subtitle}
           </Text>
         </Stack>
         
@@ -173,7 +166,7 @@ export function Hero() {
             letterSpacing: '0.05em'
           }}
         >
-          Nah. I'll win.
+          {t.hero.signature}
         </Text>
       </Box>
     </section>

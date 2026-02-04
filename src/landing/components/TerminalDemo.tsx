@@ -1,22 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Title, Stack } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
+import { useTranslation } from '../i18n/LanguageContext';
 
 interface TerminalLine {
   text: string;
   type: 'normal' | 'highlight' | 'success' | 'dim';
   delay: number;
 }
-
-const terminalLines: TerminalLine[] = [
-  { text: '> Input: imagen.png', type: 'normal', delay: 0 },
-  { text: '  → height map generado', type: 'highlight', delay: 800 },
-  { text: '> Layers: planificando cambios de color...', type: 'normal', delay: 1600 },
-  { text: '> Export: generando STL', type: 'normal', delay: 2400 },
-  { text: '                              → hecho.', type: 'success', delay: 3200 },
-  { text: '', type: 'normal', delay: 3600 },
-  { text: 'ok: color plan exported', type: 'success', delay: 4000 },
-];
 
 function TypingText({ text, onComplete }: { text: string; onComplete?: () => void }) {
   const [displayText, setDisplayText] = useState('');
@@ -56,6 +47,17 @@ export function TerminalDemo() {
   const [visibleLines, setVisibleLines] = useState<number[]>([]);
   const [isInView, setIsInView] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
+  const t = useTranslation();
+  
+  const terminalLines: TerminalLine[] = [
+    { text: t.terminal.line1, type: 'normal', delay: 0 },
+    { text: t.terminal.line2, type: 'highlight', delay: 800 },
+    { text: t.terminal.line3, type: 'normal', delay: 1600 },
+    { text: t.terminal.line4, type: 'normal', delay: 2400 },
+    { text: t.terminal.line5, type: 'success', delay: 3200 },
+    { text: '', type: 'normal', delay: 3600 },
+    { text: t.terminal.line7, type: 'success', delay: 4000 },
+  ];
   
   // Intersection observer to trigger animation when in view
   useEffect(() => {
@@ -141,7 +143,7 @@ export function TerminalDemo() {
             fontWeight: 400,
           }}
         >
-          It's done, isn't it?
+          {t.terminal.title}
         </Title>
       </Stack>
     </section>

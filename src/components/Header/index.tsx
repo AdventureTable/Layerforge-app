@@ -4,8 +4,11 @@ import {
   Button,
   Text,
   Badge,
+  Anchor,
 } from '@mantine/core';
 import { useProjectStore } from '../../stores/projectStore';
+
+const ADVENTURE_TABLE_URL = 'https://adventure-table.com/';
 
 // Check if running in Tauri
 const isTauri = () => {
@@ -288,12 +291,43 @@ export function Header() {
         </Button>
       </Group>
 
-      <Group gap="xs">
+      <Group gap="md">
         {imagePath && (
           <Text size="xs" c="dark.1" truncate style={{ maxWidth: 200 }}>
             {imagePath.split(/[\\/]/).pop()}
           </Text>
         )}
+        
+        {/* Powered by Adventure Table */}
+        <Group gap={4} style={{ opacity: 0.7 }}>
+          <Text size="xs" c="dimmed">
+            Powered by
+          </Text>
+          <Anchor
+            href={ADVENTURE_TABLE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="xs"
+            c="forge.4"
+            fw={500}
+            style={{ textDecoration: 'none' }}
+            onClick={(e) => {
+              e.preventDefault();
+              // Use Tauri's shell open if available
+              if (typeof window !== 'undefined' && '__TAURI__' in window) {
+                import('@tauri-apps/plugin-shell').then(({ open }) => {
+                  open(ADVENTURE_TABLE_URL);
+                }).catch(() => {
+                  window.open(ADVENTURE_TABLE_URL, '_blank');
+                });
+              } else {
+                window.open(ADVENTURE_TABLE_URL, '_blank');
+              }
+            }}
+          >
+            Adventure Table
+          </Anchor>
+        </Group>
       </Group>
     </Group>
   );

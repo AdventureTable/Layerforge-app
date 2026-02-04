@@ -1,10 +1,12 @@
 import { Box, Stack, Text, Title } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export function Manifesto() {
   const { ref, isVisible } = useScrollAnimation<HTMLElement>({ threshold: 0.2 });
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const t = useTranslation();
 
   return (
     <section
@@ -19,7 +21,7 @@ export function Manifesto() {
     >
       <Stack gap={isMobile ? 'md' : 'lg'} align="center" maw={900} mx="auto" px={isMobile ? 'sm' : 0}>
         <Text size="sm" c="forge.4" fw={500} mb="xs">
-          MANIFIESTO
+          {t.manifesto.label}
         </Text>
 
         <Title
@@ -29,24 +31,24 @@ export function Manifesto() {
           ta="center"
           style={{ lineHeight: 1.3 }}
         >
-          LayerForge no nace de la rabia. Nace de la curiosidad.
+          {t.manifesto.title}
         </Title>
 
         <Stack gap={isMobile ? 'xs' : 'sm'} maw={720}>
           <Text size={isMobile ? 'sm' : 'lg'} c="dimmed" ta="center">
-            De preguntarse: "¿Por qué esto es así?"
+            {t.manifesto.line1}
           </Text>
           <Text size={isMobile ? 'sm' : 'lg'} c="dimmed" ta="center">
-            Y de una respuesta sencilla: "Nah. I'll do it myself."
+            {t.manifesto.line2}
           </Text>
           <Text size={isMobile ? 'sm' : 'lg'} c="dimmed" ta="center">
-            No es un ataque. No es una cruzada. Es una sonrisa silenciosa mientras el código compila.
+            {t.manifesto.line3}
           </Text>
         </Stack>
 
         <Box className="manifesto__quote">
           <Text size={isMobile ? 'sm' : 'md'} c="forge.2" fs="italic" ta="center">
-            "Nah. I'll win."
+            {t.manifesto.quote}
           </Text>
         </Box>
       </Stack>

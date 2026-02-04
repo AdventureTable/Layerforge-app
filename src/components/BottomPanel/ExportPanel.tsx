@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Stack, Text, Button } from '@mantine/core';
 import { useProjectStore, depthToLayer } from '../../stores/projectStore';
+import { SupportModal } from '../SupportModal';
 
 // Check if running in Tauri
 const isTauri = () => {
@@ -20,6 +22,7 @@ export function ExportPanel() {
     setProcessing,
   } = useProjectStore();
   
+  const [supportModalOpened, setSupportModalOpened] = useState(false);
   const hasImage = !!imageData;
 
   const handleExportSTL = async () => {
@@ -68,6 +71,8 @@ export function ExportPanel() {
           outputPath: path,
         });
         setProcessing(false);
+        // Show support modal after successful export
+        setSupportModalOpened(true);
       }
     } catch (error) {
       console.error('Failed to export STL:', error);
@@ -169,44 +174,51 @@ export function ExportPanel() {
   };
 
   return (
-    <Stack gap="xs" h="100%">
-      <Text size="xs" fw={600}>
-        Export
-      </Text>
+    <>
+      <Stack gap="xs" h="100%">
+        <Text size="xs" fw={600}>
+          Export
+        </Text>
 
-      <Button
-        size="xs"
-        fullWidth
-        onClick={handleExportSTL}
-        disabled={!meshReady}
-        title={!meshReady ? 'Requires Python sidecar' : ''}
-      >
-        Export STL
-      </Button>
+        <Button
+          size="xs"
+          fullWidth
+          onClick={handleExportSTL}
+          disabled={!meshReady}
+          title={!meshReady ? 'Requires Python sidecar' : ''}
+        >
+          Export STL
+        </Button>
 
-      <Button
-        size="xs"
-        variant="light"
-        fullWidth
-        onClick={() => handleExportPlan('txt')}
-        disabled={!hasImage || colorPlan.stops.length === 0}
-      >
-        Export Plan (TXT)
-      </Button>
+        <Button
+          size="xs"
+          variant="light"
+          fullWidth
+          onClick={() => handleExportPlan('txt')}
+          disabled={!hasImage || colorPlan.stops.length === 0}
+        >
+          Export Plan (TXT)
+        </Button>
 
-      <Button
-        size="xs"
-        variant="light"
-        fullWidth
-        onClick={() => handleExportPlan('json')}
-        disabled={!hasImage || colorPlan.stops.length === 0}
-      >
-        Export Plan (JSON)
-      </Button>
+        <Button
+          size="xs"
+          variant="light"
+          fullWidth
+          onClick={() => handleExportPlan('json')}
+          disabled={!hasImage || colorPlan.stops.length === 0}
+        >
+          Export Plan (JSON)
+        </Button>
 
-      <Text size="xs" c="dimmed" mt="auto">
-        {hasImage ? (meshReady ? 'Ready' : 'Preview mode') : 'Load image first'}
-      </Text>
-    </Stack>
+        <Text size="xs" c="dimmed" mt="auto">
+          {hasImage ? (meshReady ? 'Ready' : 'Preview mode') : 'Load image first'}
+        </Text>
+      </Stack>
+
+      <SupportModal 
+        opened={supportModalOpened} 
+        onClose={() => setSupportModalOpened(false)} 
+      />
+    </>
   );
 }
