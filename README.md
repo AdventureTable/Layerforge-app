@@ -75,7 +75,9 @@ python build.py
 
 This creates the executable and copies it to `src-tauri/binaries/`.
 
-### 4. Run Development Server
+### 4. Run Development Mode (No build required)
+
+To run the application in development mode with hot-reloading:
 
 ```bash
 npm run tauri dev
