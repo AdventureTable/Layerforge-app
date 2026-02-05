@@ -144,4 +144,6 @@ Machine-readable format for automation:
 
 ## License
 
-MIT License
+Source Available License. See [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2026 LayerForge. All rights reserved.
