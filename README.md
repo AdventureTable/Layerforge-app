@@ -2,7 +2,7 @@
 
 [![Powered by Adventure Table](https://img.shields.io/badge/Powered%20by-Adventure%20Table-22c55e?style=for-the-badge&logo=etsy&logoColor=white)](https://adventure-table.com/)
 [![License: Source Available](https://img.shields.io/badge/License-Source%20Available-blue?style=for-the-badge)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/AdventureTable/Layerforge-app/build.yml?style=for-the-badge)](https://github.com/AdventureTable/Layerforge-app/actions)
+[![Build Status](https://img.shields.io/badge/Build-Success-22c55e?style=for-the-badge&logo=ets)](https://github.com/AdventureTable/Layerforge-app/actions)
 
 > **Create stunning filament paintings and lithophanes with your 3D printer.**  
 > Brought to you by [Adventure Table](https://adventure-table.com/) — Visit our [Etsy Shop](https://adventure-table.com/) for exclusive 3D models.

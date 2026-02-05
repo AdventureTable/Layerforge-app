@@ -1,9 +1,9 @@
-import { Modal, Stack, Text, Button, Group, Anchor, Box, Divider } from '@mantine/core';
+import { Modal, Text, Button, Stack, Image, Anchor, Box, Divider, Group } from '@mantine/core';
 
-// URLs - these should match the landing page constants
-const INSTAGRAM_URL = 'https://www.instagram.com/adventure_table';
-const ETSY_URL = 'https://www.etsy.com/shop/AdventureTable';
-const GUMROAD_COFFEE_URL = 'https://ko-fi.com/adventuretable';
+interface AboutModalProps {
+  opened: boolean;
+  onClose: () => void;
+}
 
 function InstagramIcon() {
   return (
@@ -37,14 +37,6 @@ function CoffeeIcon() {
   );
 }
 
-function HeartIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 14c1.49-1.28 3.6-2.54 3.6-5.36 0-3.07-2.48-5.64-5.6-5.64a5.83 5.83 0 0 0-4 1.6A5.83 5.83 0 0 0 9 3c-3.12 0-5.6 2.57-5.6 5.64 0 2.82 2.11 4.08 3.6 5.36L12 21l7-7z" />
-    </svg>
-  );
-}
-
 function GithubIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -54,21 +46,8 @@ function GithubIcon() {
   );
 }
 
-interface SupportModalProps {
-  opened: boolean;
-  onClose: () => void;
-  title?: string;
-  description?: string;
-}
-
-export function SupportModal({ 
-  opened, 
-  onClose,
-  title = "Thanks for using LayerForge!",
-  description = "LayerForge is free. If you find it useful, consider supporting us:"
-}: SupportModalProps) {
+export function AboutModal({ opened, onClose }: AboutModalProps) {
   const openLink = (url: string) => {
-    // Use Tauri's shell open if available, otherwise fallback to window.open
     if (typeof window !== 'undefined' && '__TAURI__' in window) {
       import('@tauri-apps/plugin-shell').then(({ open }) => {
         open(url);
@@ -81,8 +60,8 @@ export function SupportModal({
   };
 
   return (
-    <Modal
-      opened={opened}
+    <Modal 
+      opened={opened} 
       onClose={onClose}
       title={null}
       centered
@@ -97,81 +76,59 @@ export function SupportModal({
           background: 'transparent',
         },
         body: {
-          padding: '24px',
-        },
+            padding: 24
+        }
       }}
     >
-      <Stack gap="lg" align="center">
-        {/* Heart icon */}
-        <Box
-          style={{
-            color: '#1FAE7A',
-            filter: 'drop-shadow(0 0 10px rgba(31, 174, 122, 0.5))',
-          }}
-        >
-          <HeartIcon />
-        </Box>
-
-        {/* Title */}
-        <Text size="lg" fw={600} c="white" ta="center">
-          {title}
-        </Text>
-
-        {/* Subtitle */}
-        <Text size="sm" c="dimmed" ta="center" maw={280}>
-          {description}
+      <Stack align="center" gap="lg">
+        <Image src="/landing/assets/logo-horizontal.png" w={180} fit="contain" mt="xs" />
+        
+        <Text ta="center" size="sm" c="dimmed" lh={1.4}>
+          LayerForge is a free tool designed to help you create stunning filament paintings and lithophanes.
+          <br />
+          <Text span c="forge.4" size="xs">Version 0.1.0 (Beta)</Text>
         </Text>
 
         <Divider w="100%" color="rgba(31, 174, 122, 0.2)" />
 
-        {/* Support buttons */}
-        <Stack gap="sm" w="100%">
-          <Button
-            variant="light"
-            color="forge"
-            fullWidth
-            leftSection={<InstagramIcon />}
-            onClick={() => openLink(INSTAGRAM_URL)}
-            styles={{
-              root: {
-                height: 44,
-              },
-            }}
-          >
-            Follow on Instagram
-          </Button>
+        <Stack w="100%" gap="sm">
+            <Button 
+                variant="light" 
+                color="forge" 
+                fullWidth
+                size="md"
+                leftSection={<InstagramIcon />}
+                onClick={() => openLink('https://www.instagram.com/adventure_table')}
+                styles={{ root: { height: 44 } }}
+            >
+                Follow on Instagram
+            </Button>
 
-          <Button
-            variant="light"
-            color="forge"
-            fullWidth
-            leftSection={<EtsyIcon />}
-            onClick={() => openLink(ETSY_URL)}
-            styles={{
-              root: {
-                height: 44,
-              },
-            }}
-          >
-            Visit our Etsy Shop
-          </Button>
+             <Button 
+                variant="light" 
+                color="forge" 
+                fullWidth
+                size="md"
+                leftSection={<EtsyIcon />}
+                onClick={() => openLink('https://www.etsy.com/shop/AdventureTable')}
+                styles={{ root: { height: 44 } }}
+            >
+                Visit our Etsy Shop
+            </Button>
 
-          <Button
-            variant="light"
-            color="forge"
-            fullWidth
-            leftSection={<CoffeeIcon />}
-            onClick={() => openLink(GUMROAD_COFFEE_URL)}
-            styles={{
-              root: {
-                height: 44,
-              },
-            }}
-          >
-            Buy us a coffee
-          </Button>
-          
-           <Button 
+            <Button 
+                variant="light" 
+                color="forge" 
+                fullWidth
+                size="md"
+                leftSection={<CoffeeIcon />}
+                onClick={() => openLink('https://ko-fi.com/adventuretable')}
+                styles={{ root: { height: 44 } }}
+            >
+                Buy us a coffee
+            </Button>
+
+             <Button 
                 variant="light" 
                 color="forge"
                 fullWidth
@@ -184,22 +141,20 @@ export function SupportModal({
             </Button>
         </Stack>
 
-        {/* Close button */}
         <Button
           variant="subtle"
           color="gray"
           onClick={onClose}
-          mt="xs"
+          size="xs"
         >
           Close
         </Button>
 
-        {/* Powered by */}
         <Group gap={4}>
-          <Text size="xs" c="dimmed">
+            <Text size="xs" c="dimmed">
             Powered by
-          </Text>
-          <Anchor
+            </Text>
+            <Anchor
             href="https://adventure-table.com/"
             target="_blank"
             rel="noopener noreferrer"
@@ -207,13 +162,17 @@ export function SupportModal({
             c="forge.4"
             fw={500}
             onClick={(e) => {
-              e.preventDefault();
-              openLink('https://adventure-table.com/');
+                e.preventDefault();
+                openLink('https://adventure-table.com/');
             }}
-          >
+            >
             Adventure Table
-          </Anchor>
+            </Anchor>
         </Group>
+
+        <Text size="xs" c="dimmed" ta="center" style={{ opacity: 0.5 }}>
+          Copyright © 2026 LayerForge. Source Available License.
+        </Text>
       </Stack>
     </Modal>
   );
