@@ -218,7 +218,7 @@ export function FilamentPanel() {
       {/* Search input */}
       <Box px="xs" pt="xs">
         <TextInput
-          placeholder="Buscar filamento..."
+          placeholder="Search filament..."
           size="xs"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -263,7 +263,7 @@ export function FilamentPanel() {
           c="forge.2"
           onClick={() => setCalibrationModalOpen(true)}
         >
-          Calibrar filamento
+          Calibrate filament
         </Button>
       </Box>
 
@@ -271,13 +271,13 @@ export function FilamentPanel() {
       <Modal
         opened={calibrationModalOpen}
         onClose={() => setCalibrationModalOpen(false)}
-        title="Calibrar filamento"
+        title="Calibrate filament"
         size="md"
         zIndex={1000}
       >
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Para obtener el valor d95 de tus filamentos, imprime el STL de calibración y mide en qué escalón la línea negra apenas es visible.
+            To obtain the d95 value of your filaments, print the calibration STL and measure at which step the black line is barely visible.
           </Text>
           
           <Box 
@@ -289,21 +289,21 @@ export function FilamentPanel() {
             }}
           >
             <Stack gap="xs">
-              <Text size="sm" fw={600} c="forge.0">Instrucciones:</Text>
+              <Text size="sm" fw={600} c="forge.0">Instructions:</Text>
               <Text size="xs" c="gray.4">
-                1. Descarga e imprime el STL con el filamento que quieres calibrar
+                1. Download and print the STL with the filament you want to calibrate
               </Text>
               <Text size="xs" c="gray.4">
-                2. Usa 100% infill y 0.20mm layer height
+                2. Use 100% infill and 0.20mm layer height
               </Text>
               <Text size="xs" c="gray.4">
-                3. Pon la pieza sobre una línea negra (o usa un marcador)
+                3. Place the piece over a black line (or use a marker)
               </Text>
               <Text size="xs" c="gray.4">
-                4. Encuentra el escalón donde la línea negra apenas se ve (95% opaco)
+                4. Find the step where the black line is barely visible (95% opaque)
               </Text>
               <Text size="xs" c="gray.4">
-                5. Ese grosor en mm es tu valor d95
+                5. That thickness in mm is your d95 value
               </Text>
             </Stack>
           </Box>
@@ -317,14 +317,14 @@ export function FilamentPanel() {
               boxShadow: '0 0 10px rgba(31, 174, 122, 0.3)',
             }}
           >
-            Descargar STL de calibración
+            Download calibration STL
           </Button>
 
           <Button 
             variant="subtle" 
             onClick={() => setCalibrationModalOpen(false)}
           >
-            Cerrar
+            Close
           </Button>
         </Stack>
       </Modal>
@@ -355,7 +355,7 @@ export function FilamentPanel() {
             label={
               <Group gap={4} align="center">
                 <Text size="sm" fw={500}>d95 (mm)</Text>
-                <Tooltip label="¿Cómo obtener este valor?">
+                <Tooltip label="How to get this value?">
                   <ActionIcon 
                     size="xs" 
                     variant="subtle" 
@@ -367,7 +367,7 @@ export function FilamentPanel() {
                 </Tooltip>
               </Group>
             }
-            description="Grosor donde casi no se ve la linea negra de atras (95% opaco)"
+            description="Thickness where the black line behind is barely visible (95% opaque)"
             value={newFilament.d50Mm}
             onChange={(val) =>
               setNewFilament({ ...newFilament, d50Mm: Number(val) || 0.85 })
@@ -385,13 +385,13 @@ export function FilamentPanel() {
             }}
           >
             <Group justify="space-between">
-              <Text size="xs" c="dimmed">Td calculado:</Text>
+              <Text size="xs" c="dimmed">Calculated Td:</Text>
               <Text size="sm" fw={500}>{calculatedTd.toFixed(3)}</Text>
             </Group>
             <Text size="xs" c="dimmed" mt={4}>
-              {calculatedTd < 0.5 ? 'Muy translúcido' : 
-               calculatedTd < 1.0 ? 'Translúcido' :
-               calculatedTd < 1.5 ? 'Semi-opaco' : 'Opaco'}
+              {calculatedTd < 0.5 ? 'Very translucent' : 
+               calculatedTd < 1.0 ? 'Translucent' :
+               calculatedTd < 1.5 ? 'Semi-opaque' : 'Opaque'}
             </Text>
           </Box>
           <Group justify="flex-end" mt="md">
@@ -407,12 +407,12 @@ export function FilamentPanel() {
       <Modal
         opened={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Eliminar filamento"
+        title="Delete filament"
         size="sm"
       >
         <Stack gap="md">
           <Text size="sm">
-            ¿Estás seguro de que quieres eliminar{' '}
+            Are you sure you want to delete{' '}
             <Text span fw={600} c="forge.0">
               {filamentToDelete?.name}
             </Text>
@@ -420,10 +420,10 @@ export function FilamentPanel() {
           </Text>
           <Group justify="flex-end">
             <Button variant="subtle" onClick={() => setDeleteModalOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
             <Button color="red" onClick={confirmDelete}>
-              Eliminar
+              Delete
             </Button>
           </Group>
         </Stack>
@@ -433,12 +433,12 @@ export function FilamentPanel() {
       <Modal
         opened={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="Editar filamento"
+        title="Edit filament"
         size="sm"
       >
         <Stack gap="sm">
           <TextInput
-            label="Nombre"
+            label="Name"
             placeholder="e.g. Bambu Basic White"
             value={editFilamentData.name}
             onChange={(e) =>
@@ -456,7 +456,7 @@ export function FilamentPanel() {
             label={
               <Group gap={4} align="center">
                 <Text size="sm" fw={500}>d95 (mm)</Text>
-                <Tooltip label="¿Cómo obtener este valor?">
+                <Tooltip label="How to get this value?">
                   <ActionIcon 
                     size="xs" 
                     variant="subtle" 
@@ -468,7 +468,7 @@ export function FilamentPanel() {
                 </Tooltip>
               </Group>
             }
-            description="Grosor donde casi no se ve la linea negra de atras (95% opaco)"
+            description="Thickness where the black line behind is barely visible (95% opaque)"
             value={editFilamentData.d50Mm}
             onChange={(val) =>
               setEditFilamentData({ ...editFilamentData, d50Mm: Number(val) || 0.85 })
@@ -486,20 +486,20 @@ export function FilamentPanel() {
             }}
           >
             <Group justify="space-between">
-              <Text size="xs" c="dimmed">Td calculado:</Text>
+              <Text size="xs" c="dimmed">Calculated Td:</Text>
               <Text size="sm" fw={500}>{editCalculatedTd.toFixed(3)}</Text>
             </Group>
             <Text size="xs" c="dimmed" mt={4}>
-              {editCalculatedTd < 0.5 ? 'Muy translúcido' : 
-               editCalculatedTd < 1.0 ? 'Translúcido' :
-               editCalculatedTd < 1.5 ? 'Semi-opaco' : 'Opaco'}
+              {editCalculatedTd < 0.5 ? 'Very translucent' : 
+               editCalculatedTd < 1.0 ? 'Translucent' :
+               editCalculatedTd < 1.5 ? 'Semi-opaque' : 'Opaque'}
             </Text>
           </Box>
           <Group justify="flex-end" mt="md">
             <Button variant="subtle" onClick={() => setEditModalOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
-            <Button onClick={handleSaveEdit}>Guardar</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
           </Group>
         </Stack>
       </Modal>
