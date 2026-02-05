@@ -23,15 +23,21 @@ TAURI_BINARIES_DIR = ROOT_DIR.parent / 'src-tauri' / 'binaries'
 
 # Output name must match what Tauri expects
 # Format: {name}-{target_triple}
-TARGET_TRIPLES = {
-    'windows': 'x86_64-pc-windows-msvc',
-    'darwin': 'x86_64-apple-darwin',
-    'linux': 'x86_64-unknown-linux-gnu',
-}
-
 def get_target_triple():
     """Get the Rust target triple for the current platform."""
-    return TARGET_TRIPLES.get(PLATFORM, 'x86_64-unknown-linux-gnu')
+    machine = platform.machine().lower()
+    
+    if PLATFORM == 'darwin':
+        if machine == 'arm64':
+            return 'aarch64-apple-darwin'
+        return 'x86_64-apple-darwin'
+    elif PLATFORM == 'windows':
+        return 'x86_64-pc-windows-msvc'
+    elif PLATFORM == 'linux':
+        return 'x86_64-unknown-linux-gnu'
+    
+    # Default fallback
+    return 'x86_64-unknown-linux-gnu'
 
 
 def build():
