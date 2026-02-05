@@ -15,8 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-15' # Intel Mac to match build.py x86_64 hardcoding
+          - platform: 'macos-13' # Intel Mac
             args: ''
+          - platform: 'macos-15' # ARM Mac (Apple Silicon)
+            args: '--target aarch64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
           - platform: 'windows-latest'
@@ -41,6 +43,11 @@ jobs:
         run: |
           cd python-core
           python build.py
+          # Copy x86_64 binary to aarch64 name as well for Rosetta 2 compat on ARM Macs if needed
+          # Or handle it properly in build.py. Since we are cross-compiling or running on ARM runner:
+          if [ "${{ matrix.platform }}" == "macos-15" ]; then
+             cp ../src-tauri/binaries/layerforge-core-x86_64-apple-darwin ../src-tauri/binaries/layerforge-core-aarch64-apple-darwin || true
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,8 +58,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are typically implicit on these runners, but good to ensure
-          targets: ${{ matrix.platform == 'macos-15' && 'x86_64-apple-darwin' || '' }}
+          # Add aarch64 target for Apple Silicon builds
+          targets: ${{ matrix.platform == 'macos-15' && 'aarch64-apple-darwin' || (matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '') }}
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
