@@ -1,5 +1,12 @@
 # Layerforge
 
+[![Powered by Adventure Table](https://img.shields.io/badge/Powered%20by-Adventure%20Table-22c55e?style=for-the-badge&logo=etsy&logoColor=white)](https://adventure-table.com/)
+[![License: Source Available](https://img.shields.io/badge/License-Source%20Available-blue?style=for-the-badge)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/AdventureTable/Layerforge-app/build.yml?style=for-the-badge)](https://github.com/AdventureTable/Layerforge-app/actions)
+
+> **Create stunning filament paintings and lithophanes with your 3D printer.**  
+> Brought to you by [Adventure Table](https://adventure-table.com/) — Visit our [Etsy Shop](https://adventure-table.com/) for exclusive 3D models.
+
 A desktop application for creating 3D-printable lithophanes and relief models with filament color swap planning.
 
 ## Features
@@ -10,6 +17,15 @@ A desktop application for creating 3D-printable lithophanes and relief models wi
 - **Live Preview**: See real-time preview of how your print will look
 - **3D View**: Visualize the mesh in 3D with Three.js
 - **Export Options**: Export STL files and print swap plans
+
+## Community & Support
+
+**Love this tool?**  
+Support development by buying us a coffee or checking out our premium models!
+
+- ☕ [**Buy me a Coffee (Ko-fi)**](https://ko-fi.com/adventuretable)
+- 🛒 [**Adventure Table Shop (Etsy)**](https://adventure-table.com/)
+- 🌐 [**Official Website**](https://layerforge.app/)
 
 ## Tech Stack
 

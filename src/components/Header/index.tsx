@@ -229,6 +229,44 @@ export function Header() {
             LayerForge
           </Title>
         </Group>
+        
+        {/* Support Button (Buy me a coffee style) */}
+        <Button
+          component="a"
+          href="https://ko-fi.com/adventuretable"
+          target="_blank"
+          variant="light"
+          size="xs"
+          radius="xl"
+          color="yellow"
+          leftSection="☕"
+          styles={{
+            root: {
+              backgroundColor: 'rgba(255, 200, 0, 0.1)',
+              color: '#FFD43B',
+              border: '1px solid rgba(255, 200, 0, 0.2)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 200, 0, 0.2)',
+              }
+            }
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            // Use Tauri's shell open if available
+            if (typeof window !== 'undefined' && '__TAURI__' in window) {
+              import('@tauri-apps/plugin-shell').then(({ open }) => {
+                open('https://ko-fi.com/adventuretable');
+              }).catch(() => {
+                window.open('https://ko-fi.com/adventuretable', '_blank');
+              });
+            } else {
+              window.open('https://ko-fi.com/adventuretable', '_blank');
+            }
+          }}
+        >
+          Support Project
+        </Button>
+
         {isDirty && (
           <Badge 
             size="xs" 
