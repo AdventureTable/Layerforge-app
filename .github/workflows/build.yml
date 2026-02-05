@@ -13,14 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-13' # Intel Mac
-            args: '--target x86_64-apple-darwin'
-            ext: 'dmg'
-            asset_name: 'LayerForge_macOS.dmg' # Universal/Intel name
           - platform: 'macos-15' # ARM Mac (Apple Silicon)
             args: '--target aarch64-apple-darwin'
             ext: 'dmg'
-            asset_name: 'LayerForge_macOS_AppleSilicon.dmg'
+            asset_name: 'LayerForge_macOS.dmg' # Native Apple Silicon
           - platform: 'ubuntu-22.04'
             args: ''
             ext: 'AppImage'
@@ -62,7 +58,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-15' && 'aarch64-apple-darwin' || (matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '') }}
+          targets: ${{ matrix.platform == 'macos-15' && 'aarch64-apple-darwin' || '' }}
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -146,7 +142,6 @@ jobs:
             
             **Contains:**
             - Windows Installer (.msi)
-            - macOS Intel (.dmg)
             - macOS Apple Silicon (.dmg)
             - Linux AppImage (.AppImage)
             
