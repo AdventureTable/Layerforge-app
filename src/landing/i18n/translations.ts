@@ -1,6 +1,104 @@
 export type Language = 'en' | 'es';
 
-export const translations = {
+interface FeatureItem {
+  title: string;
+  description: string;
+}
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface TranslationKeys {
+  hero: {
+    title: string;
+    titleHighlight: string;
+    titleEnd: string;
+    bullet1: string;
+    bullet2: string;
+    bullet3: string;
+    cta: string;
+    ctaSecondary: string;
+    ctaManifesto: string;
+    subtitle: string;
+    signature: string;
+  };
+  terminal: {
+    line1: string;
+    line2: string;
+    line3: string;
+    line4: string;
+    line5: string;
+    line7: string;
+    title: string;
+  };
+  interface: {
+    label: string;
+    title: string;
+    subtitleMobile: string;
+    subtitleDesktop: string;
+    mobileTitle: string;
+    mobileDesc: string;
+    mobileNote: string;
+    mobileBtn: string;
+  };
+  features: {
+    label: string;
+    title: string;
+    items: FeatureItem[];
+  };
+  philosophy: {
+    title1: string;
+    titleHighlight: string;
+    title2: string;
+    subtitle: string;
+    quote: string;
+  };
+  manifesto: {
+    label: string;
+    title: string;
+    line1: string;
+    line2: string;
+    line3: string;
+    quote: string;
+  };
+  download: {
+    label: string;
+    title: string;
+    subtitle: string;
+    badge: string;
+    windows: string;
+    mac: string;
+    linux: string;
+    supportTitle: string;
+    supportDesc: string;
+    instagram: string;
+    etsy: string;
+    coffee: string;
+    note: string;
+    installTitle: string;
+    windowsNote: string;
+    macNote: string;
+  };
+  faq: {
+    label: string;
+    title: string;
+    items: FaqItem[];
+  };
+  footer: {
+    tagline: string;
+    motto: string;
+    manifesto: string;
+    support: string;
+    contact: string;
+    copyright: string;
+    poweredBy: string;
+    adventureTable: string;
+  };
+}
+
+export const translations: Record<Language, TranslationKeys> = {
   en: {
     hero: {
       title: 'Transform an image into a',
@@ -267,6 +365,4 @@ export const translations = {
       adventureTable: 'Adventure Table',
     },
   },
-} as const;
-
-export type TranslationKeys = typeof translations['en'];
+};
