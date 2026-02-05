@@ -78,15 +78,23 @@ jobs:
         shell: bash
         run: |
           # Define source pattern based on extension
-          SRC_PATTERN="src-tauri/target/release/bundle/${{ matrix.ext }}/*.${{ matrix.ext }}"
+          # NOTE: When cross-compiling (e.g. macOS ARM), Tauri puts artifacts in target/<triple>/release/bundle
           
-          # Handle specific platform paths if they differ slightly or generic glob
-          if [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
+          if [ "${{ matrix.platform }}" == "macos-15" ]; then
+             # macOS builds put artifacts in aarch64-apple-darwin subdir when target specified
+             SRC_PATTERN="src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg"
+          elif [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
              SRC_PATTERN="src-tauri/target/release/bundle/appimage/*.AppImage"
+          else
+             # Standard location (Windows/Linux default)
+             SRC_PATTERN="src-tauri/target/release/bundle/${{ matrix.ext }}/*.${{ matrix.ext }}"
           fi
           
           echo "Looking for artifacts matching: $SRC_PATTERN"
-          ls -R src-tauri/target/release/bundle/
+          
+          # Use find to list potentially matching files for debug
+          find src-tauri/target -name "*.${{ matrix.ext }}" || true
+          find src-tauri/target -name "*.AppImage" || true
           
           # Rename
           # We use find to locate the file safely
