@@ -1,4 +1,4 @@
-"""Heightmap generation module for Cheapforge."""
+"""Heightmap generation module for Layerforge."""
 
 import numpy as np
 from PIL import Image, ImageFilter

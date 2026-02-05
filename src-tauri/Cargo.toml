@@ -1,12 +1,12 @@
 [package]
-name = "cheapforge"
+name = "layerforge"
 version = "0.1.0"
 description = "Filament Painting STL + Swap Planner"
-authors = ["Cheapforge Team"]
+authors = ["Layerforge Team"]
 edition = "2021"
 
 [lib]
-name = "cheapforge_lib"
+name = "layerforge_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

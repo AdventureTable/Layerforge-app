@@ -4,7 +4,7 @@ import pytest
 import json
 import os
 
-from cheapforge.cli import (
+from layerforge.cli import (
     handle_request,
     process_image,
     generate_mesh,

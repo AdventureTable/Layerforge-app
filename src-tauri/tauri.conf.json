@@ -36,7 +36,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/cheapforge-core"]
+    "externalBin": ["binaries/layerforge-core"]
   },
   "plugins": {
     "shell": {

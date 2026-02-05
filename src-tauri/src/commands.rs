@@ -104,7 +104,7 @@ async fn call_python_sidecar(
 
     let shell = app.shell();
     let sidecar = shell
-        .sidecar("cheapforge-core")
+        .sidecar("layerforge-core")
         .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
 
     let (mut rx, mut child) = sidecar

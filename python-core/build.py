@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build script for Cheapforge Python sidecar.
+"""Build script for Layerforge Python sidecar.
 
 This script uses PyInstaller to create a standalone executable
 that can be bundled with the Tauri application.
@@ -79,8 +79,8 @@ def build():
     
     # PyInstaller arguments
     args = [
-        str(ROOT_DIR / 'cheapforge' / 'cli.py'),
-        '--name', 'cheapforge-core',
+        str(ROOT_DIR / 'layerforge' / 'cli.py'),
+        '--name', 'layerforge-core',
         '--onefile',
         '--clean',
         '--noconfirm',
@@ -106,8 +106,8 @@ def build():
     
     # Copy to Tauri binaries directory with correct name
     target_triple = get_target_triple()
-    source_exe = DIST_DIR / f'cheapforge-core{EXE_SUFFIX}'
-    target_name = f'cheapforge-core-{target_triple}{EXE_SUFFIX}'
+    source_exe = DIST_DIR / f'layerforge-core{EXE_SUFFIX}'
+    target_name = f'layerforge-core-{target_triple}{EXE_SUFFIX}'
     target_path = TAURI_BINARIES_DIR / target_name
     
     # Create binaries directory if it doesn't exist

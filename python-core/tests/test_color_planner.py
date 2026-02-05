@@ -4,7 +4,7 @@ import pytest
 import json
 import os
 
-from cheapforge.color_planner import ColorPlanner, Filament, ColorStop, SwapEntry
+from layerforge.color_planner import ColorPlanner, Filament, ColorStop, SwapEntry
 
 
 class TestColorPlanner:
@@ -168,7 +168,7 @@ class TestColorPlanner:
 
         with open(output_path, 'r') as f:
             content = f.read()
-            assert 'CHEAPFORGE' in content
+            assert 'LAYERFORGE' in content
             assert 'FILAMENTS' in content
             assert 'SWAP PLAN' in content
 

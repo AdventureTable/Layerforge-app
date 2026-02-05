@@ -1,4 +1,4 @@
-"""Image processing module for Cheapforge."""
+"""Image processing module for Layerforge."""
 
 import numpy as np
 from PIL import Image, ImageFilter

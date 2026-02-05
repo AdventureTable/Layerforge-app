@@ -1,4 +1,4 @@
-# Futuras Mejoras - Cheapforge
+# Futuras Mejoras - Layerforge
 
 Documento con propuestas de mejoras para futuras versiones.
 

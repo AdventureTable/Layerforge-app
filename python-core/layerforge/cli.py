@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI entry point for Cheapforge Python sidecar.
+"""CLI entry point for Layerforge Python sidecar.
 
 This module provides a JSON-RPC like interface for communication
 with the Tauri frontend via stdin/stdout.
@@ -10,10 +10,10 @@ import json
 import traceback
 from typing import Any, Dict
 
-from cheapforge.image_processor import ImageProcessor
-from cheapforge.heightmap import HeightMapGenerator
-from cheapforge.mesh_generator import MeshGenerator
-from cheapforge.color_planner import ColorPlanner
+from layerforge.image_processor import ImageProcessor
+from layerforge.heightmap import HeightMapGenerator
+from layerforge.mesh_generator import MeshGenerator
+from layerforge.color_planner import ColorPlanner
 
 
 def process_image(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -327,7 +327,7 @@ def export_plan(params: Dict[str, Any]) -> Dict[str, Any]:
     ]
     
     # Recreate swaps as proper dataclass instances
-    from cheapforge.color_planner import SwapEntry
+    from layerforge.color_planner import SwapEntry
     planner.swaps = [
         SwapEntry(
             layer=s.get('layer', 0),

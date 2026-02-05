@@ -1,4 +1,4 @@
-"""Mesh generation module for Cheapforge."""
+"""Mesh generation module for Layerforge."""
 
 import numpy as np
 from stl import mesh as stl_mesh

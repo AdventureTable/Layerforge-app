@@ -99,7 +99,7 @@ export function ExportPanel() {
 
     const planData = {
       version: '1.0',
-      generator: 'Cheapforge',
+      generator: 'Layerforge',
       print_settings: {
         width_mm: printSettings.widthMm,
         height_mm: printSettings.heightMm,

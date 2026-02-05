@@ -6,7 +6,7 @@ from PIL import Image
 import io
 import base64
 
-from cheapforge.image_processor import ImageProcessor
+from layerforge.image_processor import ImageProcessor
 
 
 class TestImageProcessor:

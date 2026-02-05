@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import os
 
-from cheapforge.mesh_generator import MeshGenerator
+from layerforge.mesh_generator import MeshGenerator
 
 
 class TestMeshGenerator:

@@ -2,14 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MantineProvider, createTheme } from '@mantine/core';
 import App from './App';
-import { Landing } from './landing/Landing';
 import '@mantine/core/styles.css';
 import './styles/global.css';
-
-// Check if running in Tauri (desktop app) or browser (landing page)
-const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
 
 const theme = createTheme({
   primaryColor: 'forge',
@@ -108,7 +102,7 @@ const theme = createTheme({
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      {isTauri() ? <App /> : <Landing />}
+      <App />
     </MantineProvider>
   </React.StrictMode>
 );

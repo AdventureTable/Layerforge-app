@@ -1,4 +1,4 @@
-"""Shared fixtures for Cheapforge tests."""
+"""Shared fixtures for Layerforge tests."""
 
 import pytest
 import numpy as np

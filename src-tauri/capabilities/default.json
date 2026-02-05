@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for Cheapforge",
+  "description": "Default capabilities for Layerforge",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -10,7 +10,7 @@
       "identifier": "shell:allow-execute",
       "allow": [
         {
-          "name": "binaries/cheapforge-core",
+          "name": "binaries/layerforge-core",
           "sidecar": true,
           "args": true
         }

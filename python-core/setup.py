@@ -1,12 +1,12 @@
-"""Setup script for Cheapforge Python core."""
+"""Setup script for Layerforge Python core."""
 
 from setuptools import setup, find_packages
 
 setup(
-    name="cheapforge",
+    name="layerforge",
     version="0.1.0",
     description="Image processing and STL generation for 3D printing",
-    author="Cheapforge Team",
+    author="Layerforge Team",
     packages=find_packages(),
     python_requires=">=3.9",
     install_requires=[
@@ -23,7 +23,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "cheapforge-core=cheapforge.cli:main",
+            "layerforge-core=layerforge.cli:main",
         ]
     },
 )

@@ -1,4 +1,4 @@
-# Cheapforge
+# Layerforge
 
 A desktop application for creating 3D-printable lithophanes and relief models with filament color swap planning.
 
@@ -22,7 +22,7 @@ A desktop application for creating 3D-printable lithophanes and relief models wi
 ## Project Structure
 
 ```
-cheapforge/
+layerforge/
 ├── src/                    # React frontend
 │   ├── components/         # UI components
 │   ├── hooks/              # React hooks
@@ -33,7 +33,7 @@ cheapforge/
 │   ├── src/                # Rust source
 │   └── binaries/           # Python sidecar executables
 └── python-core/            # Python processing core
-    └── cheapforge/         # Python package
+    └── layerforge/         # Python package
 ```
 
 ## Prerequisites

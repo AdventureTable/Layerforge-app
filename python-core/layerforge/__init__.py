@@ -1,4 +1,4 @@
-"""Cheapforge Python Core - Image processing and STL generation."""
+"""Layerforge Python Core - Image processing and STL generation."""
 
 __version__ = "0.1.0"
 

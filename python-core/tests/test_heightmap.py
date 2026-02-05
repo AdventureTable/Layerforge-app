@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import base64
 
-from cheapforge.heightmap import HeightMapGenerator
+from layerforge.heightmap import HeightMapGenerator
 
 
 class TestHeightMapGenerator:

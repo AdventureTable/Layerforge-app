@@ -12,7 +12,7 @@ python-core/build/
 # Tauri
 src-tauri/target/
 src-tauri/binaries/*.exe
-src-tauri/binaries/cheapforge-core-*
+src-tauri/binaries/layerforge-core-*
 
 # IDE
 .vscode/
@@ -49,3 +49,6 @@ coverage/
 .nyc_output/
 htmlcov/
 .pytest_cache/
+
+# Documentation (Internal)
+doc/
