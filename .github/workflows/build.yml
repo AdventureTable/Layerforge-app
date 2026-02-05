@@ -48,6 +48,12 @@ jobs:
           python build.py
           # Verify sidecar binary existence
           ls -la ../src-tauri/binaries/
+          
+          # Sign the python sidecar on macOS (Required for ARM/Apple Silicon)
+          if [[ "${{ matrix.platform }}" == *"macos"* ]]; then
+             echo "Signing sidecar binaries..."
+             find ../src-tauri/binaries -type f -exec codesign --force --deep --sign - {} \;
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -152,6 +158,12 @@ jobs:
             - Windows Installer (.msi)
             - macOS Apple Silicon (.dmg)
             - Linux AppImage (.AppImage)
+            
+            **macOS User Note:**
+            If you get an "App is damaged" error, it is because the app is not notarized by Apple yet.
+            To fix it, open Terminal and run:
+            `xattr -cr /Applications/LayerForge.app`
+            (Assuming you moved the app to the Applications folder)
             
             *Built automatically from main branch.*
           files: artifacts/*
