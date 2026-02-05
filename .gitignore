@@ -50,5 +50,7 @@ coverage/
 htmlcov/
 .pytest_cache/
 
+
 # Documentation (Internal)
 doc/
+
