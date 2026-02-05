@@ -1,11 +1,9 @@
-name: Build
+name: Nightly Build
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build-tauri:
@@ -16,13 +14,21 @@ jobs:
       matrix:
         include:
           - platform: 'macos-13' # Intel Mac
-            args: ''
+            args: '--target x86_64-apple-darwin'
+            ext: 'dmg'
+            asset_name: 'LayerForge_macOS.dmg' # Universal/Intel name
           - platform: 'macos-15' # ARM Mac (Apple Silicon)
             args: '--target aarch64-apple-darwin'
+            ext: 'dmg'
+            asset_name: 'LayerForge_macOS_AppleSilicon.dmg'
           - platform: 'ubuntu-22.04'
             args: ''
+            ext: 'AppImage'
+            asset_name: 'LayerForge_Linux.AppImage'
           - platform: 'windows-latest'
             args: ''
+            ext: 'msi'
+            asset_name: 'LayerForge_Windows.msi'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -44,11 +50,8 @@ jobs:
         run: |
           cd python-core
           python build.py
-          # Copy x86_64 binary to aarch64 name as well for Rosetta 2 compat on ARM Macs if needed
-          # Or handle it properly in build.py. Since we are cross-compiling or running on ARM runner:
-          if [ "${{ matrix.platform }}" == "macos-15" ]; then
-             cp ../src-tauri/binaries/layerforge-core-x86_64-apple-darwin ../src-tauri/binaries/layerforge-core-aarch64-apple-darwin || true
-          fi
+          # Verify sidecar binary existence
+          ls -la ../src-tauri/binaries/
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -59,7 +62,6 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Add aarch64 target for Apple Silicon builds
           targets: ${{ matrix.platform == 'macos-15' && 'aarch64-apple-darwin' || (matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '') }}
 
       - name: Install dependencies (ubuntu only)
@@ -72,13 +74,84 @@ jobs:
         run: npm ci
 
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run tauri build -- ${{ matrix.args }}
+
+      - name: Rename and Prepare Artifacts
+        shell: bash
+        run: |
+          # Define source pattern based on extension
+          SRC_PATTERN="src-tauri/target/release/bundle/${{ matrix.ext }}/*.${{ matrix.ext }}"
+          
+          # Handle specific platform paths if they differ slightly or generic glob
+          if [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
+             SRC_PATTERN="src-tauri/target/release/bundle/appimage/*.AppImage"
+          fi
+          
+          echo "Looking for artifacts matching: $SRC_PATTERN"
+          ls -R src-tauri/target/release/bundle/
+          
+          # Rename
+          # We use find to locate the file safely
+          FILE=$(ls $SRC_PATTERN | head -n 1)
+          if [ -f "$FILE" ]; then
+             echo "Found artifact: $FILE"
+             mv "$FILE" "${{ matrix.asset_name }}"
+             echo "Renamed to: ${{ matrix.asset_name }}"
+          else
+             echo "Error: Artifact not found!"
+             exit 1
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          tagName: app-v__VERSION__
-          releaseName: "LayerForge v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          name: artifacts-${{ matrix.platform }}
+          path: ${{ matrix.asset_name }}
+          if-no-files-found: error
+
+  publish-nightly:
+    needs: build-tauri
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Display Downloaded Files
+        run: ls -R artifacts
+
+      - name: Delete Old Nightly Release
+        uses: dev-drprasad/delete-tag-and-release@v1.1
+        with:
+          delete_release: true
+          tag_name: nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Nightly Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Nightly Build
+          tag_name: nightly
+          body: |
+            Latest nightly build of LayerForge.
+            
+            **Contains:**
+            - Windows Installer (.msi)
+            - macOS Intel (.dmg)
+            - macOS Apple Silicon (.dmg)
+            - Linux AppImage (.AppImage)
+            
+            *Built automatically from main branch.*
+          files: artifacts/*
+          prerelease: true
+          draft: false
+          target_commitish: main
