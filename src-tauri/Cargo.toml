@@ -1,6 +1,7 @@
 [package]
 name = "layerforge"
 version = "0.1.0"
+license-file = "../LICENSE"
 description = "Filament Painting STL + Swap Planner"
 authors = ["Layerforge Team"]
 edition = "2021"
