@@ -48,6 +48,36 @@ class TestImageProcessor:
             luminance, sample_rgb_array[:, :, 0], decimal=5
         )
 
+    def test_to_luminance_methods_colorful(self):
+        """Test luminance methods on a colorful input."""
+        processor = ImageProcessor()
+        processor.original_image = np.array(
+            [
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+
+        lum601 = processor.to_luminance(method="rec601")
+        lum709 = processor.to_luminance(method="rec709")
+        lum_max = processor.to_luminance(method="max_channel")
+        lum_avg = processor.to_luminance(method="scaled_max_channel")
+
+        assert lum601.shape == (2, 2)
+        assert lum709.shape == (2, 2)
+
+        assert lum601[0, 0] == pytest.approx(0.299, abs=1e-4)  # red
+        assert lum709[0, 0] == pytest.approx(0.2126, abs=1e-4)  # red
+        assert lum_max[0, 1] == pytest.approx(1.0, abs=1e-6)  # green
+        assert lum_avg[0, 1] == pytest.approx(1.0 / 3.0, abs=1e-6)  # green
+
+        # White stays white for all methods
+        assert lum601[1, 1] == pytest.approx(1.0, abs=1e-6)
+        assert lum709[1, 1] == pytest.approx(1.0, abs=1e-6)
+        assert lum_max[1, 1] == pytest.approx(1.0, abs=1e-6)
+        assert lum_avg[1, 1] == pytest.approx(1.0, abs=1e-6)
+
     def test_to_luminance_raises_without_image(self):
         """Test that to_luminance raises error without loaded image."""
         processor = ImageProcessor()
@@ -90,6 +120,39 @@ class TestImageProcessor:
         # Negative offset should decrease brightness
         darker = processor.apply_curve(sample_grayscale_array, offset=-0.2)
         assert np.mean(darker) < np.mean(sample_grayscale_array)
+
+    def test_apply_transfer_curve(self):
+        """Test piecewise-linear transfer curve."""
+        processor = ImageProcessor()
+        img = np.array([[0.0, 0.25, 0.5, 0.75, 1.0]], dtype=np.float32)
+
+        points = [
+            {"x": 0.0, "y": 0.0},
+            {"x": 0.25, "y": 0.15},
+            {"x": 0.5, "y": 0.35},
+            {"x": 0.75, "y": 0.85},
+            {"x": 1.0, "y": 1.0},
+        ]
+
+        mapped = processor.apply_transfer_curve(img, points)
+
+        assert mapped.shape == img.shape
+        assert mapped[0, 0] == pytest.approx(0.0, abs=1e-6)
+        assert mapped[0, 1] == pytest.approx(0.15, abs=1e-6)
+        assert mapped[0, 2] == pytest.approx(0.35, abs=1e-6)
+        assert mapped[0, 3] == pytest.approx(0.85, abs=1e-6)
+        assert mapped[0, 4] == pytest.approx(1.0, abs=1e-6)
+
+    def test_apply_dynamic_depth(self):
+        """Test percentile-based dynamic depth stretch."""
+        processor = ImageProcessor()
+        img = np.linspace(0.4, 0.6, 100, dtype=np.float32).reshape((10, 10))
+
+        stretched = processor.apply_dynamic_depth(img, low_pct=2, high_pct=98)
+
+        assert stretched.min() == pytest.approx(0.0, abs=1e-6)
+        assert stretched.max() == pytest.approx(1.0, abs=1e-6)
+        assert stretched.shape == img.shape
 
     def test_smooth(self, sample_grayscale_array):
         """Test Gaussian smoothing."""

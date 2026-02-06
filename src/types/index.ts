@@ -73,7 +73,23 @@ export interface ModelGeometrySettings {
   spikeRemoval: 'none' | 'light' | 'medium' | 'strong';
   imageFormat: 'color' | 'luminance';
   detailSize: number;
+  luminanceMethod:
+    | 'rec601'
+    | 'rec709'
+    | 'max_channel'
+    | 'scaled_max_channel'
+    | 'combo'
+    | 'color_aware'
+    | 'color_pop';
+  toneMappingMode: 'gamma' | 'curve';
+  transferCurve: TransferCurvePoint[];
+  dynamicDepth: boolean;
   invert: boolean;
+}
+
+export interface TransferCurvePoint {
+  x: number;
+  y: number;
 }
 
 // Print Settings
@@ -163,6 +179,16 @@ export const DEFAULT_MODEL_GEOMETRY: ModelGeometrySettings = {
   spikeRemoval: 'none',
   imageFormat: 'luminance',
   detailSize: 1.0,
+  luminanceMethod: 'rec601',
+  toneMappingMode: 'gamma',
+  transferCurve: [
+    { x: 0, y: 0 },
+    { x: 0.25, y: 0.25 },
+    { x: 0.5, y: 0.5 },
+    { x: 0.75, y: 0.75 },
+    { x: 1, y: 1 },
+  ],
+  dynamicDepth: false,
   invert: false,
 };
 

@@ -421,11 +421,32 @@ export const useProjectStore = create<ProjectStore>()(
     resetProject: () => set(initialState),
 
     loadProject: (state) =>
-      set((current) => ({
-        ...current,
-        ...state,
-        isDirty: false,
-      })),
+      set((current) => {
+        const loadedStops = state.colorPlan?.stops;
+        const loadedMode = state.colorPlan?.mode;
+
+        return {
+          ...current,
+          ...state,
+          modelGeometry: {
+            ...DEFAULT_MODEL_GEOMETRY,
+            ...(state.modelGeometry ?? {}),
+          },
+          printSettings: {
+            ...DEFAULT_PRINT_SETTINGS,
+            ...(state.printSettings ?? {}),
+          },
+          lighting: {
+            ...DEFAULT_LIGHTING,
+            ...(state.lighting ?? {}),
+          },
+          colorPlan: {
+            mode: loadedMode ?? 'transmission',
+            stops: Array.isArray(loadedStops) ? loadedStops : [],
+          },
+          isDirty: false,
+        };
+      }),
 
     getProjectJSON: () => {
       const state = get();

@@ -113,6 +113,38 @@ class TestCLI:
         assert result['width'] == 8
         assert result['height'] == 8
 
+    def test_process_image_curve_and_dynamic_depth(self, sample_image_path):
+        """Test process_image with curve mode and dynamic depth enabled."""
+        params = {
+            'image_path': sample_image_path,
+            'geometry': {
+                'min_depth_mm': 0.5,
+                'max_depth_mm': 2.0,
+                'gamma': 1.0,
+                'contrast': 1.0,
+                'offset': 0.0,
+                'smoothing': 0.0,
+                'spike_removal': 'none',
+                'luminance_method': 'rec709',
+                'tone_mapping_mode': 'curve',
+                'transfer_curve': [
+                    {'x': 0.0, 'y': 0.0},
+                    {'x': 0.25, 'y': 0.2},
+                    {'x': 0.5, 'y': 0.45},
+                    {'x': 0.75, 'y': 0.8},
+                    {'x': 1.0, 'y': 1.0},
+                ],
+                'dynamic_depth': True,
+                'invert': False,
+            }
+        }
+
+        result = process_image(params)
+
+        assert 'heightmap_base64' in result
+        assert result['width'] == 8
+        assert result['height'] == 8
+
     def test_compute_swaps_function(self, sample_stops):
         """Test compute_swaps function directly."""
         params = {

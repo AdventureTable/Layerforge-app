@@ -30,6 +30,10 @@ def process_image(params: Dict[str, Any]) -> Dict[str, Any]:
                 offset: float,
                 smoothing: float,
                 spike_removal: str,
+                luminance_method: str,
+                tone_mapping_mode: 'gamma' | 'curve',
+                transfer_curve: [{x: float, y: float}, ...],
+                dynamic_depth: bool,
                 invert: bool
             }
         }
@@ -53,6 +57,10 @@ def process_image(params: Dict[str, Any]) -> Dict[str, Any]:
         offset=geometry.get('offset', 0.0),
         smoothing=geometry.get('smoothing', 0.0),
         spike_removal=geometry.get('spike_removal', 'none'),
+        luminance_method=geometry.get('luminance_method', geometry.get('luminanceMethod', 'rec601')),
+        tone_mapping_mode=geometry.get('tone_mapping_mode', geometry.get('toneMappingMode', 'gamma')),
+        transfer_curve=geometry.get('transfer_curve', geometry.get('transferCurve', None)),
+        dynamic_depth=geometry.get('dynamic_depth', geometry.get('dynamicDepth', False)),
         invert=geometry.get('invert', False)
     )
     

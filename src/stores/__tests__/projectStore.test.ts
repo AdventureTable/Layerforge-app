@@ -373,5 +373,24 @@ describe('projectStore', () => {
       expect(state.modelGeometry.gamma).toBe(1.5);
       expect(state.isDirty).toBe(false);
     });
+
+    it('loadProject should merge modelGeometry defaults for older projects', () => {
+      const { loadProject } = useProjectStore.getState();
+
+      loadProject({
+        imagePath: '/saved/path.png',
+        modelGeometry: {
+          gamma: 2.0,
+        } as any,
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.modelGeometry.gamma).toBe(2.0);
+      expect(state.modelGeometry.luminanceMethod).toBe('rec601');
+      expect(state.modelGeometry.toneMappingMode).toBe('gamma');
+      expect(state.modelGeometry.dynamicDepth).toBe(false);
+      expect(state.modelGeometry.transferCurve.length).toBeGreaterThan(0);
+      expect(state.isDirty).toBe(false);
+    });
   });
 });

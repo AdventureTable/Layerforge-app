@@ -11,9 +11,11 @@ import {
   Divider,
   Badge,
   Tooltip,
+  SegmentedControl,
 } from '@mantine/core';
 import { useProjectStore, useRecommendedResolution, useImageResolution } from '../../stores/projectStore';
-import { getResolutionStatus, calculateRecommendedResolution } from '../../types';
+import { DEFAULT_MODEL_GEOMETRY, getResolutionStatus, calculateRecommendedResolution } from '../../types';
+import { TransferCurveEditor } from '../TransferCurveEditor';
 
 // Check if running in Tauri
 const isTauri = () => {
@@ -77,6 +79,10 @@ export function ModelGeometry() {
             offset: currentGeometry.offset,
             smoothing: currentGeometry.smoothing,
             spike_removal: currentGeometry.spikeRemoval,
+            luminance_method: currentGeometry.luminanceMethod,
+            tone_mapping_mode: currentGeometry.toneMappingMode,
+            transfer_curve: currentGeometry.transferCurve,
+            dynamic_depth: currentGeometry.dynamicDepth,
             invert: currentGeometry.invert,
           },
         },
@@ -211,106 +217,184 @@ export function ModelGeometry() {
 
       <Box style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, paddingRight: 4 }}>
         <Stack gap="xs">
+          <Select
+            label="Luminance"
+            size="xs"
+            value={modelGeometry.luminanceMethod}
+            onChange={(v) =>
+              handleChange(
+                'luminanceMethod',
+                (v as typeof modelGeometry.luminanceMethod) ?? 'rec601'
+              )
+            }
+            data={[
+              { value: 'rec601', label: 'Rec.601 (Legacy)' },
+              { value: 'rec709', label: 'Rec.709' },
+              { value: 'max_channel', label: 'Max Channel' },
+              { value: 'scaled_max_channel', label: 'Scaled Max (Average)' },
+              { value: 'combo', label: 'Combo (Rec.709 + Max)' },
+              { value: 'color_aware', label: 'Color Aware' },
+              { value: 'color_pop', label: 'Color Pop' },
+            ]}
+          />
+
+          <Box>
+            <Text size="xs" mb={4}>
+              Tone mapping
+            </Text>
+            <SegmentedControl
+              size="xs"
+              fullWidth
+              value={modelGeometry.toneMappingMode}
+              onChange={(v) =>
+                handleChange(
+                  'toneMappingMode',
+                  (v as typeof modelGeometry.toneMappingMode) ?? 'gamma'
+                )
+              }
+              data={[
+                { value: 'gamma', label: 'Gamma' },
+                { value: 'curve', label: 'Curve' },
+              ]}
+            />
+          </Box>
+
+          <Group gap="xs" align="flex-end">
+            <NumberInput
+              label="Min Depth (mm)"
+              size="xs"
+              value={modelGeometry.minDepthMm}
+              onChange={(v) => handleChange('minDepthMm', Number(v) || 0)}
+              min={0}
+              max={modelGeometry.maxDepthMm - 0.1}
+              step={0.04}
+              decimalScale={2}
+              style={{ flex: 1 }}
+            />
+            <NumberInput
+              label="Max Depth (mm)"
+              size="xs"
+              value={modelGeometry.maxDepthMm}
+              onChange={(v) => handleChange('maxDepthMm', Number(v) || 0)}
+              min={modelGeometry.minDepthMm + 0.1}
+              max={10}
+              step={0.04}
+              decimalScale={2}
+              style={{ flex: 1 }}
+            />
+            <Switch
+              size="xs"
+              label="Auto Depth"
+              checked={modelGeometry.dynamicDepth}
+              onChange={(e) => handleChange('dynamicDepth', e.currentTarget.checked)}
+              styles={{
+                root: { paddingBottom: 2 },
+                label: { fontSize: 12 },
+              }}
+            />
+          </Group>
+
+          {modelGeometry.toneMappingMode === 'gamma' ? (
+            <Group gap="xs" grow>
+              <Box>
+                <Text size="xs" mb={4}>
+                  Gamma: {modelGeometry.gamma.toFixed(2)}
+                </Text>
+                <Slider
+                  size="xs"
+                  value={modelGeometry.gamma}
+                  onChange={(v) => handleChange('gamma', v)}
+                  min={0.1}
+                  max={3}
+                  step={0.05}
+                />
+              </Box>
+              <Box>
+                <Text size="xs" mb={4}>
+                  Contrast: {modelGeometry.contrast.toFixed(2)}
+                </Text>
+                <Slider
+                  size="xs"
+                  value={modelGeometry.contrast}
+                  onChange={(v) => handleChange('contrast', v)}
+                  min={0.5}
+                  max={2}
+                  step={0.05}
+                />
+              </Box>
+            </Group>
+          ) : (
+            <Box>
+              <Group justify="space-between" mb={4}>
+                <Text size="xs">Transfer Curve</Text>
+                <Button
+                  size="xs"
+                  variant="subtle"
+                  onClick={() =>
+                    handleChange('transferCurve', DEFAULT_MODEL_GEOMETRY.transferCurve)
+                  }
+                >
+                  Reset
+                </Button>
+              </Group>
+              <TransferCurveEditor
+                value={modelGeometry.transferCurve}
+                onChange={(v) => handleChange('transferCurve', v)}
+              />
+            </Box>
+          )}
+
           <Group gap="xs" grow>
-        <NumberInput
-          label="Min Depth (mm)"
-          size="xs"
-          value={modelGeometry.minDepthMm}
-          onChange={(v) => handleChange('minDepthMm', Number(v) || 0)}
-          min={0}
-          max={modelGeometry.maxDepthMm - 0.1}
-          step={0.04}
-          decimalScale={2}
-        />
-        <NumberInput
-          label="Max Depth (mm)"
-          size="xs"
-          value={modelGeometry.maxDepthMm}
-          onChange={(v) => handleChange('maxDepthMm', Number(v) || 0)}
-          min={modelGeometry.minDepthMm + 0.1}
-          max={10}
-          step={0.04}
-          decimalScale={2}
-        />
-      </Group>
+            <Box>
+              <Text size="xs" mb={4}>
+                Smoothing: {modelGeometry.smoothing.toFixed(2)}
+              </Text>
+              <Slider
+                size="xs"
+                value={modelGeometry.smoothing}
+                onChange={(v) => handleChange('smoothing', v)}
+                min={0}
+                max={5}
+                step={0.1}
+              />
+            </Box>
+            <Select
+              label="Spike Removal"
+              size="xs"
+              value={modelGeometry.spikeRemoval}
+              onChange={(v) =>
+                handleChange(
+                  'spikeRemoval',
+                  v as 'none' | 'light' | 'medium' | 'strong'
+                )
+              }
+              data={[
+                { value: 'none', label: 'None' },
+                { value: 'light', label: 'Light' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'strong', label: 'Strong' },
+              ]}
+            />
+          </Group>
 
-      <Group gap="xs" grow>
-        <Box>
-          <Text size="xs" mb={4}>
-            Gamma: {modelGeometry.gamma.toFixed(2)}
-          </Text>
-          <Slider
-            size="xs"
-            value={modelGeometry.gamma}
-            onChange={(v) => handleChange('gamma', v)}
-            min={0.1}
-            max={3}
-            step={0.05}
-          />
-        </Box>
-        <Box>
-          <Text size="xs" mb={4}>
-            Contrast: {modelGeometry.contrast.toFixed(2)}
-          </Text>
-          <Slider
-            size="xs"
-            value={modelGeometry.contrast}
-            onChange={(v) => handleChange('contrast', v)}
-            min={0.5}
-            max={2}
-            step={0.05}
-          />
-        </Box>
-      </Group>
+          <Group gap="xs">
+            <Switch
+              size="xs"
+              label="Invert"
+              checked={modelGeometry.invert}
+              onChange={(e) => handleChange('invert', e.currentTarget.checked)}
+            />
+            <Switch
+              size="xs"
+              label="Border"
+              checked={printSettings.hasBorder}
+              onChange={(e) =>
+                handlePrintChange('hasBorder', e.currentTarget.checked)
+              }
+            />
+          </Group>
 
-      <Group gap="xs" grow>
-        <Box>
-          <Text size="xs" mb={4}>
-            Smoothing: {modelGeometry.smoothing.toFixed(2)}
-          </Text>
-          <Slider
-            size="xs"
-            value={modelGeometry.smoothing}
-            onChange={(v) => handleChange('smoothing', v)}
-            min={0}
-            max={5}
-            step={0.1}
-          />
-        </Box>
-        <Select
-          label="Spike Removal"
-          size="xs"
-          value={modelGeometry.spikeRemoval}
-          onChange={(v) =>
-            handleChange('spikeRemoval', v as 'none' | 'light' | 'medium' | 'strong')
-          }
-          data={[
-            { value: 'none', label: 'None' },
-            { value: 'light', label: 'Light' },
-            { value: 'medium', label: 'Medium' },
-            { value: 'strong', label: 'Strong' },
-          ]}
-        />
-      </Group>
-
-      <Group gap="xs">
-        <Switch
-          size="xs"
-          label="Invert"
-          checked={modelGeometry.invert}
-          onChange={(e) => handleChange('invert', e.currentTarget.checked)}
-        />
-        <Switch
-          size="xs"
-          label="Border"
-          checked={printSettings.hasBorder}
-          onChange={(e) =>
-            handlePrintChange('hasBorder', e.currentTarget.checked)
-          }
-        />
-      </Group>
-
-      <Divider />
+          <Divider />
 
       <Group gap="xs" align="flex-end">
         <NumberInput

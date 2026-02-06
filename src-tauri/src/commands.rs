@@ -1,6 +1,30 @@
 use serde::{Deserialize, Serialize};
 use tauri_plugin_shell::ShellExt;
 
+fn default_luminance_method() -> String {
+    "rec601".to_string()
+}
+
+fn default_tone_mapping_mode() -> String {
+    "gamma".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TransferCurvePoint {
+    pub x: f64,
+    pub y: f64,
+}
+
+fn default_transfer_curve() -> Vec<TransferCurvePoint> {
+    vec![
+        TransferCurvePoint { x: 0.0, y: 0.0 },
+        TransferCurvePoint { x: 0.25, y: 0.25 },
+        TransferCurvePoint { x: 0.5, y: 0.5 },
+        TransferCurvePoint { x: 0.75, y: 0.75 },
+        TransferCurvePoint { x: 1.0, y: 1.0 },
+    ]
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ModelGeometrySettings {
     pub min_depth_mm: f64,
@@ -10,6 +34,14 @@ pub struct ModelGeometrySettings {
     pub offset: f64,
     pub smoothing: f64,
     pub spike_removal: String,
+    #[serde(default = "default_luminance_method")]
+    pub luminance_method: String,
+    #[serde(default = "default_tone_mapping_mode")]
+    pub tone_mapping_mode: String,
+    #[serde(default = "default_transfer_curve")]
+    pub transfer_curve: Vec<TransferCurvePoint>,
+    #[serde(default)]
+    pub dynamic_depth: bool,
     pub invert: bool,
 }
 
