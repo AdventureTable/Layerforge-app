@@ -915,6 +915,7 @@ export function EasyModeWizard() {
               label="Color"
               value={editorData.hexColor}
               onChange={(color) => setEditorData({ ...editorData, hexColor: color })}
+              popoverProps={{ withinPortal: true, zIndex: 2205 }}
             />
             <NumberInput
               label="d95 (mm)"
