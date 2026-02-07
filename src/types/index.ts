@@ -168,6 +168,46 @@ export interface ProjectState {
   activeView: 'image' | 'preview' | '3d';
 }
 
+// Easy Mode (guided preview-first wizard)
+export interface EasyModeDraftImage {
+  path: string; // file name (web) or absolute path (tauri)
+  dataUrl: string; // base64 data URL for preview
+  aspectRatio: number;
+  widthMm: number;
+  heightMm: number;
+}
+
+export interface EasyModeRecipe {
+  id: string; // stable per round+genome (used for thumbnail cache)
+  label: string;
+
+  // Depth mapping
+  minDepthMm: number;
+  maxDepthMm: number;
+  dynamicDepth: boolean;
+
+  // Luminance + tone mapping
+  luminanceMethod: ModelGeometrySettings['luminanceMethod'];
+  toneMappingMode: ModelGeometrySettings['toneMappingMode'];
+  gamma?: number;
+  contrast?: number;
+  offset?: number;
+  transferCurve?: TransferCurvePoint[];
+
+  // Color plan
+  stopStrategy: 'weighted' | 'linear';
+  filamentOrderIds: string[]; // order used to distribute stops
+  stops: ColorStop[];
+
+  warnings?: string[];
+}
+
+export interface ApplyEasyModeSetupParams {
+  image?: EasyModeDraftImage;
+  selectedFilamentIds: string[];
+  recipe: EasyModeRecipe;
+}
+
 // Default values
 export const DEFAULT_MODEL_GEOMETRY: ModelGeometrySettings = {
   minDepthMm: 0.48,

@@ -10,6 +10,7 @@ import type {
   LightingSettings,
   ColorStop,
   SwapEntry,
+  ApplyEasyModeSetupParams,
 } from '../types';
 import {
   DEFAULT_MODEL_GEOMETRY,
@@ -51,6 +52,10 @@ const saveFilaments = (filaments: Filament[]) => {
 interface ResolutionModalState {
   showResolutionModal: boolean;
   pendingResolutionChange: number | null;
+}
+
+interface EasyModeWizardState {
+  easyModeWizardOpen: boolean;
 }
 
 interface ProjectActions {
@@ -98,15 +103,20 @@ interface ProjectActions {
   markDirty: () => void;
   markClean: () => void;
 
+  // Easy Mode wizard
+  openEasyModeWizard: () => void;
+  closeEasyModeWizard: () => void;
+  applyEasyModeSetup: (params: ApplyEasyModeSetupParams) => void;
+
   // Project actions
   resetProject: () => void;
   loadProject: (state: Partial<ProjectState>) => void;
   getProjectJSON: () => string;
 }
 
-type ProjectStore = ProjectState & ProjectActions & ResolutionModalState;
+type ProjectStore = ProjectState & ProjectActions & ResolutionModalState & EasyModeWizardState;
 
-const initialState: ProjectState & ResolutionModalState = {
+const initialState: ProjectState & ResolutionModalState & EasyModeWizardState = {
   imagePath: null,
   imageData: null,
   imageAspectRatio: 1,
@@ -132,6 +142,8 @@ const initialState: ProjectState & ResolutionModalState = {
   // Resolution modal state
   showResolutionModal: false,
   pendingResolutionChange: null,
+  // Easy Mode wizard
+  easyModeWizardOpen: false,
 };
 
 export const useProjectStore = create<ProjectStore>()(
@@ -416,6 +428,107 @@ export const useProjectStore = create<ProjectStore>()(
     markDirty: () => set({ isDirty: true }),
 
     markClean: () => set({ isDirty: false }),
+
+    // Easy Mode wizard
+    openEasyModeWizard: () => set({ easyModeWizardOpen: true }),
+
+    closeEasyModeWizard: () => set({ easyModeWizardOpen: false }),
+
+    applyEasyModeSetup: (params) =>
+      set((state) => {
+        const selectedSet = new Set(params.selectedFilamentIds);
+
+        // Ensure a stable, valid selected order
+        const currentFilamentIds = new Set(state.filaments.map((f) => f.id));
+        const recipeOrderUnique: string[] = [];
+        const seen = new Set<string>();
+        for (const id of params.recipe.filamentOrderIds) {
+          if (seen.has(id)) continue;
+          seen.add(id);
+          if (!selectedSet.has(id)) continue;
+          if (!currentFilamentIds.has(id)) continue;
+          recipeOrderUnique.push(id);
+        }
+
+        const selectedIdsStable = params.selectedFilamentIds.filter((id) => currentFilamentIds.has(id));
+        const missingSelected = selectedIdsStable.filter((id) => !recipeOrderUnique.includes(id));
+        const finalSelectedOrder = [...recipeOrderUnique, ...missingSelected];
+
+        const restIds = [...state.filaments]
+          .filter((f) => !selectedSet.has(f.id))
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+          .map((f) => f.id);
+
+        const finalOrderIds = [...finalSelectedOrder, ...restIds];
+        const byId = new Map(state.filaments.map((f) => [f.id, f]));
+
+        const newFilaments: Filament[] = finalOrderIds
+          .map((id, orderIndex) => {
+            const f = byId.get(id);
+            if (!f) return null;
+            return {
+              ...f,
+              enabled: selectedSet.has(id),
+              orderIndex,
+            };
+          })
+          .filter((v): v is Filament => v !== null);
+
+        const recipe = params.recipe;
+
+        const nextGeometry: ModelGeometrySettings = {
+          ...state.modelGeometry,
+          minDepthMm: recipe.minDepthMm,
+          maxDepthMm: recipe.maxDepthMm,
+          dynamicDepth: recipe.dynamicDepth,
+          luminanceMethod: recipe.luminanceMethod,
+          toneMappingMode: recipe.toneMappingMode,
+          gamma: recipe.toneMappingMode === 'gamma' ? recipe.gamma ?? 1.0 : 1.0,
+          contrast: recipe.toneMappingMode === 'gamma' ? recipe.contrast ?? 1.0 : 1.0,
+          offset: recipe.toneMappingMode === 'gamma' ? recipe.offset ?? 0.0 : 0.0,
+          transferCurve:
+            recipe.toneMappingMode === 'curve'
+              ? recipe.transferCurve ?? state.modelGeometry.transferCurve
+              : state.modelGeometry.transferCurve,
+        };
+
+        const nextPrintSettings = params.image
+          ? {
+              ...state.printSettings,
+              widthMm: params.image.widthMm,
+              heightMm: params.image.heightMm,
+            }
+          : state.printSettings;
+
+        return {
+          // Image (optional)
+          ...(params.image
+            ? {
+                imagePath: params.image.path,
+                imageData: params.image.dataUrl,
+                imageAspectRatio: params.image.aspectRatio,
+              }
+            : null),
+
+          filaments: newFilaments,
+          modelGeometry: nextGeometry,
+          printSettings: nextPrintSettings,
+          colorPlan: {
+            ...state.colorPlan,
+            stops: recipe.stops,
+          },
+
+          // Clear derived artifacts to avoid stale mesh/preview data
+          heightmapData: null,
+          heightmapWidth: 0,
+          heightmapHeight: 0,
+          previewData: null,
+          meshReady: false,
+
+          activeView: 'preview',
+          isDirty: true,
+        };
+      }),
 
     // Project actions
     resetProject: () => set(initialState),

@@ -57,6 +57,7 @@ export function Header() {
     isProcessing,
     setImage,
     resetProject,
+    openEasyModeWizard,
     loadProject,
     getProjectJSON,
     setPrintSettings,
@@ -282,6 +283,14 @@ export function Header() {
       </Group>
 
       <Group gap="sm">
+        <Button
+          size="xs"
+          variant="light"
+          color="forge"
+          onClick={openEasyModeWizard}
+        >
+          Easy Mode
+        </Button>
         <Button 
           size="xs" 
           variant="subtle" 

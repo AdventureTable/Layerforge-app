@@ -6,6 +6,7 @@ import { ColorCore } from './components/ColorCore';
 import { BottomPanel } from './components/BottomPanel';
 import { Header } from './components/Header';
 import { ResolutionChangeModal } from './components/ResolutionChangeModal';
+import { EasyModeWizard } from './components/EasyModeWizard';
 import { useProjectStore } from './stores/projectStore';
 
 // Check if running in Tauri
@@ -143,6 +144,7 @@ function App() {
 
       {/* Modals */}
       <ResolutionChangeModal />
+      <EasyModeWizard />
     </AppShell>
   );
 }

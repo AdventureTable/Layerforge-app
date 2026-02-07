@@ -303,6 +303,126 @@ describe('projectStore', () => {
     });
   });
 
+  describe('easy mode wizard', () => {
+    it('openEasyModeWizard and closeEasyModeWizard should toggle', () => {
+      const { openEasyModeWizard, closeEasyModeWizard } = useProjectStore.getState();
+
+      openEasyModeWizard();
+      expect(useProjectStore.getState().easyModeWizardOpen).toBe(true);
+
+      closeEasyModeWizard();
+      expect(useProjectStore.getState().easyModeWizardOpen).toBe(false);
+    });
+
+    it('applyEasyModeSetup should apply recipe settings and enabled filaments', () => {
+      const { applyEasyModeSetup } = useProjectStore.getState();
+      const state = useProjectStore.getState();
+
+      const f0 = state.filaments[0];
+      const f1 = state.filaments[1];
+
+      applyEasyModeSetup({
+        selectedFilamentIds: [f0.id, f1.id],
+        recipe: {
+          id: 'test_recipe',
+          label: 'Test Recipe',
+          minDepthMm: 0.56,
+          maxDepthMm: 2.0,
+          dynamicDepth: true,
+          luminanceMethod: 'rec709',
+          toneMappingMode: 'gamma',
+          gamma: 1.2,
+          contrast: 1.1,
+          offset: 0.05,
+          filamentOrderIds: [f1.id, f0.id],
+          stops: [
+            { filamentId: f1.id, thresholdZMm: 1.0 },
+            { filamentId: f0.id, thresholdZMm: 2.0 },
+          ],
+        } as any,
+      });
+
+      const next = useProjectStore.getState();
+
+      // Enabled set
+      const enabled = next.filaments.filter((f) => f.enabled).map((f) => f.id);
+      expect(new Set(enabled)).toEqual(new Set([f0.id, f1.id]));
+
+      // OrderIndex reflects recipe order first
+      const ordered = [...next.filaments].sort((a, b) => a.orderIndex - b.orderIndex);
+      expect(ordered[0].id).toBe(f1.id);
+      expect(ordered[1].id).toBe(f0.id);
+
+      // Geometry / color plan applied
+      expect(next.modelGeometry.minDepthMm).toBe(0.56);
+      expect(next.modelGeometry.maxDepthMm).toBe(2.0);
+      expect(next.modelGeometry.dynamicDepth).toBe(true);
+      expect(next.modelGeometry.luminanceMethod).toBe('rec709');
+      expect(next.modelGeometry.toneMappingMode).toBe('gamma');
+      expect(next.modelGeometry.gamma).toBe(1.2);
+      expect(next.modelGeometry.contrast).toBe(1.1);
+      expect(next.modelGeometry.offset).toBe(0.05);
+      expect(next.colorPlan.stops).toEqual([
+        { filamentId: f1.id, thresholdZMm: 1.0 },
+        { filamentId: f0.id, thresholdZMm: 2.0 },
+      ]);
+
+      // UX post-apply
+      expect(next.activeView).toBe('preview');
+      expect(next.isDirty).toBe(true);
+      expect(next.meshReady).toBe(false);
+      expect(next.heightmapData).toBeNull();
+      expect(next.previewData).toBeNull();
+    });
+
+    it('applyEasyModeSetup should apply image when provided', () => {
+      const { applyEasyModeSetup } = useProjectStore.getState();
+      const state = useProjectStore.getState();
+
+      const f0 = state.filaments[0];
+      const f1 = state.filaments[1];
+
+      applyEasyModeSetup({
+        image: {
+          path: 'test.png',
+          dataUrl: 'data:image/png;base64,xyz',
+          aspectRatio: 1.25,
+          widthMm: 150,
+          heightMm: 120,
+        },
+        selectedFilamentIds: [f0.id, f1.id],
+        recipe: {
+          id: 'test_recipe_img',
+          label: 'Test Recipe Img',
+          minDepthMm: 0.56,
+          maxDepthMm: 2.0,
+          dynamicDepth: false,
+          luminanceMethod: 'rec601',
+          toneMappingMode: 'curve',
+          transferCurve: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0.2 },
+            { x: 0.5, y: 0.5 },
+            { x: 0.75, y: 0.8 },
+            { x: 1, y: 1 },
+          ],
+          filamentOrderIds: [f0.id, f1.id],
+          stops: [
+            { filamentId: f0.id, thresholdZMm: 1.0 },
+            { filamentId: f1.id, thresholdZMm: 2.0 },
+          ],
+        } as any,
+      });
+
+      const next = useProjectStore.getState();
+      expect(next.imagePath).toBe('test.png');
+      expect(next.imageData).toBe('data:image/png;base64,xyz');
+      expect(next.imageAspectRatio).toBe(1.25);
+      expect(next.printSettings.widthMm).toBe(150);
+      expect(next.printSettings.heightMm).toBe(120);
+    });
+  });
+
   describe('project actions', () => {
     it('resetProject should restore initial state', () => {
       const { setImage, addFilament, setModelGeometry, resetProject } =
