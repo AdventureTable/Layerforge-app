@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Tabs, Box, Center, Text, Image, Stack, Progress, Paper, Group, Button } from '@mantine/core';
+import { Tabs, Box, Center, Text, Stack, Progress, Paper, Group, Button } from '@mantine/core';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { useProjectStore } from '../../stores/projectStore';
@@ -115,10 +115,15 @@ export function PreviewArea() {
           <Tabs.Panel value="image" style={{ height: '100%' }}>
             {imageData ? (
               <Center h="100%" p="md">
-                <Image
+                <img
                   src={imageData}
-                  fit="contain"
-                  style={{ maxHeight: '100%', maxWidth: '100%' }}
+                  alt="Source image"
+                  style={{
+                    maxHeight: '100%',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
                 />
               </Center>
             ) : (
@@ -158,15 +163,7 @@ export function PreviewArea() {
                         target="_blank"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                            import('@tauri-apps/plugin-shell').then(({ open }) => {
-                              open('https://adventure-table.com/');
-                            }).catch(() => {
-                              window.open('https://adventure-table.com/', '_blank');
-                            });
-                          } else {
-                            window.open('https://adventure-table.com/', '_blank');
-                          }
+                          window.open('https://adventure-table.com/', '_blank', 'noopener,noreferrer');
                         }}
                       >
                         Visit Adventure Table Shop

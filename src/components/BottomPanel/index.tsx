@@ -1,10 +1,7 @@
-import { Box, Group, Divider, Button, Stack, Text } from '@mantine/core';
-import { save } from '@tauri-apps/plugin-dialog';
-import { invoke } from '@tauri-apps/api/core';
+import { Box, Group, Divider } from '@mantine/core';
 import { ColorSliders } from '../ColorSliders';
 import { ModelGeometry } from '../ModelGeometry';
 import { ExportPanel } from './ExportPanel';
-import { useProjectStore } from '../../stores/projectStore';
 
 export function BottomPanel() {
   return (

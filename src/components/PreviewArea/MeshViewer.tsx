@@ -117,30 +117,37 @@ export function MeshViewer() {
       {/* Border if enabled */}
       {printSettings.hasBorder && heightmapGeometry && (
         <>
+          {(() => {
+            const borderHeight = printSettings.borderDepthMm + printSettings.baseLayerMm;
+            return (
+              <>
           <mesh
-            position={[0, printSettings.borderDepthMm / 2, height / 2 + printSettings.borderWidthMm / 2]}
+            position={[0, borderHeight / 2, height / 2 + printSettings.borderWidthMm / 2]}
           >
-            <boxGeometry args={[width + printSettings.borderWidthMm * 2, printSettings.borderDepthMm, printSettings.borderWidthMm]} />
+            <boxGeometry args={[width + printSettings.borderWidthMm * 2, borderHeight, printSettings.borderWidthMm]} />
             <meshStandardMaterial color="#0F2E26" />
           </mesh>
           <mesh
-            position={[0, printSettings.borderDepthMm / 2, -height / 2 - printSettings.borderWidthMm / 2]}
+            position={[0, borderHeight / 2, -height / 2 - printSettings.borderWidthMm / 2]}
           >
-            <boxGeometry args={[width + printSettings.borderWidthMm * 2, printSettings.borderDepthMm, printSettings.borderWidthMm]} />
+            <boxGeometry args={[width + printSettings.borderWidthMm * 2, borderHeight, printSettings.borderWidthMm]} />
             <meshStandardMaterial color="#0F2E26" />
           </mesh>
           <mesh
-            position={[-width / 2 - printSettings.borderWidthMm / 2, printSettings.borderDepthMm / 2, 0]}
+            position={[-width / 2 - printSettings.borderWidthMm / 2, borderHeight / 2, 0]}
           >
-            <boxGeometry args={[printSettings.borderWidthMm, printSettings.borderDepthMm, height]} />
+            <boxGeometry args={[printSettings.borderWidthMm, borderHeight, height]} />
             <meshStandardMaterial color="#0F2E26" />
           </mesh>
           <mesh
-            position={[width / 2 + printSettings.borderWidthMm / 2, printSettings.borderDepthMm / 2, 0]}
+            position={[width / 2 + printSettings.borderWidthMm / 2, borderHeight / 2, 0]}
           >
-            <boxGeometry args={[printSettings.borderWidthMm, printSettings.borderDepthMm, height]} />
+            <boxGeometry args={[printSettings.borderWidthMm, borderHeight, height]} />
             <meshStandardMaterial color="#0F2E26" />
           </mesh>
+              </>
+            );
+          })()}
         </>
       )}
     </group>

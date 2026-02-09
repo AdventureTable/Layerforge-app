@@ -5,6 +5,7 @@ import {
   DEFAULT_PRINT_SETTINGS,
   DEFAULT_LIGHTING,
   DEFAULT_FILAMENTS,
+  calculateRecommendedResolution,
 } from '../../types';
 
 describe('projectStore', () => {
@@ -134,6 +135,111 @@ describe('projectStore', () => {
         expect(f.orderIndex).toBe(i);
       });
     });
+
+    it('replaceFilaments should replace library and reindex orderIndex', () => {
+      const { replaceFilaments } = useProjectStore.getState();
+
+      replaceFilaments(
+        [
+          {
+            id: 'b',
+            name: 'B',
+            hexColor: '#000000',
+            d50Mm: 1.2,
+            td: 1.0,
+            enabled: true,
+            orderIndex: 10,
+          },
+          {
+            id: 'a',
+            name: 'A',
+            hexColor: '#FFFFFF',
+            d50Mm: 1.0,
+            td: 1.2,
+            enabled: true,
+            orderIndex: 0,
+          },
+        ] as any,
+        'never'
+      );
+
+      const state = useProjectStore.getState();
+      expect(state.filaments.map((f) => f.id)).toEqual(['a', 'b']);
+      expect(state.filaments.map((f) => f.orderIndex)).toEqual([0, 1]);
+    });
+
+    it('replaceFilaments should reset stops when incompatible', () => {
+      const { setColorPlan, replaceFilaments } = useProjectStore.getState();
+
+      setColorPlan({
+        stops: [{ filamentId: 'old', thresholdZMm: 1.0 }],
+      });
+
+      replaceFilaments(
+        [
+          {
+            id: 'a',
+            name: 'A',
+            hexColor: '#FFFFFF',
+            d50Mm: 1.0,
+            td: 1.2,
+            enabled: true,
+            orderIndex: 0,
+          },
+          {
+            id: 'b',
+            name: 'B',
+            hexColor: '#000000',
+            d50Mm: 1.2,
+            td: 1.0,
+            enabled: true,
+            orderIndex: 1,
+          },
+        ] as any,
+        'if_invalid'
+      );
+
+      const state = useProjectStore.getState();
+      const stopIds = new Set(state.colorPlan.stops.map((s) => s.filamentId));
+      expect(stopIds.has('old')).toBe(false);
+      expect(stopIds).toEqual(new Set(['a', 'b']));
+    });
+
+    it('replaceFilaments should keep stops when compatible', () => {
+      const { setColorPlan, replaceFilaments } = useProjectStore.getState();
+
+      const stops = [
+        { filamentId: 'a', thresholdZMm: 1.23 },
+        { filamentId: 'b', thresholdZMm: 2.34 },
+      ];
+      setColorPlan({ stops });
+
+      replaceFilaments(
+        [
+          {
+            id: 'a',
+            name: 'A',
+            hexColor: '#FFFFFF',
+            d50Mm: 1.0,
+            td: 1.2,
+            enabled: true,
+            orderIndex: 0,
+          },
+          {
+            id: 'b',
+            name: 'B',
+            hexColor: '#000000',
+            d50Mm: 1.2,
+            td: 1.0,
+            enabled: true,
+            orderIndex: 1,
+          },
+        ] as any,
+        'if_invalid'
+      );
+
+      expect(useProjectStore.getState().colorPlan.stops).toEqual(stops);
+    });
   });
 
   describe('settings actions', () => {
@@ -161,6 +267,52 @@ describe('projectStore', () => {
       expect(state.printSettings.layerHeightMm).toBe(
         DEFAULT_PRINT_SETTINGS.layerHeightMm
       ); // Unchanged
+    });
+
+    it('setPrintSettings should auto-sync meshResolution when not manually set', () => {
+      const { setHeightmapData, setPrintSettings } = useProjectStore.getState();
+
+      setHeightmapData('base64data', 1000, 800);
+      expect(useProjectStore.getState().printSettings.meshResolutionManuallySet).toBe(false);
+
+      setPrintSettings({ widthMm: 200, heightMm: 150 });
+
+      const state = useProjectStore.getState();
+      const expected = calculateRecommendedResolution(
+        200,
+        150,
+        state.printSettings.nozzleDiameter,
+        state.heightmapWidth,
+        state.heightmapHeight
+      );
+      expect(state.printSettings.meshResolution).toBe(expected);
+      expect(state.printSettings.meshResolutionManuallySet).toBe(false);
+      expect(state.showResolutionModal).toBe(false);
+      expect(state.pendingResolutionChange).toBeNull();
+    });
+
+    it('setPrintSettings should show resolution modal when meshResolution was manually set', () => {
+      const { setHeightmapData, setMeshResolution, setPrintSettings } = useProjectStore.getState();
+
+      setHeightmapData('base64data', 1000, 800);
+      setMeshResolution(123, true);
+      expect(useProjectStore.getState().printSettings.meshResolutionManuallySet).toBe(true);
+
+      setPrintSettings({ widthMm: 200 });
+
+      const state = useProjectStore.getState();
+      const expected = calculateRecommendedResolution(
+        200,
+        state.printSettings.heightMm,
+        state.printSettings.nozzleDiameter,
+        state.heightmapWidth,
+        state.heightmapHeight
+      );
+
+      expect(state.printSettings.meshResolution).toBe(123);
+      expect(state.printSettings.meshResolutionManuallySet).toBe(true);
+      expect(state.showResolutionModal).toBe(true);
+      expect(state.pendingResolutionChange).toBe(expected);
     });
 
     it('setLighting should update lighting settings', () => {
@@ -492,6 +644,31 @@ describe('projectStore', () => {
       expect(state.filaments[0].name).toBe('Saved');
       expect(state.modelGeometry.gamma).toBe(1.5);
       expect(state.isDirty).toBe(false);
+    });
+
+    it('loadProject should clear derived data and force recompute', () => {
+      const { setHeightmapData, setPreviewData, setMeshReady, loadProject } = useProjectStore.getState();
+
+      setHeightmapData('hm', 10, 10);
+      setPreviewData('prev');
+      setMeshReady(true);
+      const beforeNonce = useProjectStore.getState().heightmapRecomputeNonce;
+
+      loadProject({
+        imagePath: '/saved/path.png',
+        imageData: 'data:saved',
+        modelGeometry: {
+          gamma: 2.0,
+        } as any,
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.heightmapData).toBeNull();
+      expect(state.heightmapWidth).toBe(0);
+      expect(state.heightmapHeight).toBe(0);
+      expect(state.previewData).toBeNull();
+      expect(state.meshReady).toBe(false);
+      expect(state.heightmapRecomputeNonce).toBe(beforeNonce + 1);
     });
 
     it('loadProject should merge modelGeometry defaults for older projects', () => {

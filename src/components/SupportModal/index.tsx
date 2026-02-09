@@ -68,16 +68,7 @@ export function SupportModal({
   description = "LayerForge is free. If you find it useful, consider supporting us:"
 }: SupportModalProps) {
   const openLink = (url: string) => {
-    // Use Tauri's shell open if available, otherwise fallback to window.open
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
-      import('@tauri-apps/plugin-shell').then(({ open }) => {
-        open(url);
-      }).catch(() => {
-        window.open(url, '_blank');
-      });
-    } else {
-      window.open(url, '_blank');
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (

@@ -18,6 +18,8 @@ import {
   DEFAULT_LIGHTING,
   DEFAULT_FILAMENTS,
   calculateRecommendedResolution,
+  calculateTdFromD50,
+  calculateD50FromTd,
 } from '../types';
 
 // localStorage key for persisting filaments
@@ -58,6 +60,10 @@ interface EasyModeWizardState {
   easyModeWizardOpen: boolean;
 }
 
+interface HeightmapProcessingState {
+  heightmapRecomputeNonce: number;
+}
+
 interface ProjectActions {
   // Image actions
   setImage: (path: string, data: string) => void;
@@ -69,6 +75,10 @@ interface ProjectActions {
   removeFilament: (id: string) => void;
   toggleFilament: (id: string) => void;
   reorderFilaments: (filaments: Filament[]) => void;
+  replaceFilaments: (
+    filaments: Filament[],
+    resetStops?: 'if_invalid' | 'always' | 'never'
+  ) => void;
 
   // Settings actions
   setModelGeometry: (settings: Partial<ModelGeometrySettings>) => void;
@@ -94,6 +104,7 @@ interface ProjectActions {
   setMeshReady: (ready: boolean) => void;
   setSwaps: (swaps: SwapEntry[]) => void;
   setProcessing: (processing: boolean) => void;
+  requestHeightmapRecompute: () => void;
 
   // UI state
   setActiveView: (view: 'image' | 'preview' | '3d') => void;
@@ -114,9 +125,12 @@ interface ProjectActions {
   getProjectJSON: () => string;
 }
 
-type ProjectStore = ProjectState & ProjectActions & ResolutionModalState & EasyModeWizardState;
+type ProjectStore = ProjectState & ProjectActions & ResolutionModalState & EasyModeWizardState & HeightmapProcessingState;
 
-const initialState: ProjectState & ResolutionModalState & EasyModeWizardState = {
+const initialState: ProjectState &
+  ResolutionModalState &
+  EasyModeWizardState &
+  HeightmapProcessingState = {
   imagePath: null,
   imageData: null,
   imageAspectRatio: 1,
@@ -144,6 +158,7 @@ const initialState: ProjectState & ResolutionModalState & EasyModeWizardState = 
   pendingResolutionChange: null,
   // Easy Mode wizard
   easyModeWizardOpen: false,
+  heightmapRecomputeNonce: 0,
 };
 
 export const useProjectStore = create<ProjectStore>()(
@@ -230,6 +245,113 @@ export const useProjectStore = create<ProjectStore>()(
         isDirty: true,
       }),
 
+    replaceFilaments: (filaments, resetStops = 'if_invalid') =>
+      set((state) => {
+        const seenIds = new Map<string, number>();
+
+        const normalized = (filaments ?? [])
+          .map((raw, index) => {
+            const baseId =
+              typeof raw?.id === 'string' && raw.id.trim()
+                ? raw.id.trim()
+                : `imported_${index}`;
+            const count = seenIds.get(baseId) ?? 0;
+            seenIds.set(baseId, count + 1);
+            const id = count === 0 ? baseId : `${baseId}_${count + 1}`;
+
+            const tdCandidate =
+              typeof (raw as any)?.td === 'number' && Number.isFinite((raw as any).td)
+                ? (raw as any).td
+                : null;
+            const d50Candidate =
+              typeof (raw as any)?.d50Mm === 'number' && Number.isFinite((raw as any).d50Mm)
+                ? (raw as any).d50Mm
+                : null;
+
+            const d50Mm =
+              d50Candidate && d50Candidate > 0
+                ? d50Candidate
+                : tdCandidate && tdCandidate > 0
+                  ? calculateD50FromTd(tdCandidate)
+                  : 0.85;
+            const td =
+              tdCandidate && tdCandidate > 0 ? tdCandidate : calculateTdFromD50(d50Mm);
+
+            return {
+              ...raw,
+              id,
+              name:
+                typeof raw?.name === 'string' && raw.name.trim()
+                  ? raw.name.trim()
+                  : baseId,
+              hexColor: (() => {
+                const rawHex =
+                  typeof raw?.hexColor === 'string' && raw.hexColor.trim()
+                    ? raw.hexColor.trim()
+                    : '';
+                const withHash = rawHex.startsWith('#') ? rawHex : `#${rawHex}`;
+                return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toUpperCase() : '#FFFFFF';
+              })(),
+              d50Mm,
+              td,
+              enabled: typeof raw?.enabled === 'boolean' ? raw.enabled : true,
+              orderIndex:
+                typeof raw?.orderIndex === 'number' && Number.isFinite(raw.orderIndex)
+                  ? raw.orderIndex
+                  : index,
+            } as Filament;
+          })
+          .map((f, i) => ({ f, i }))
+          .sort((a, b) => (a.f.orderIndex - b.f.orderIndex) || (a.i - b.i))
+          .map((entry, idx) => ({ ...entry.f, orderIndex: idx }));
+
+        const shouldResetStops = (() => {
+          if (resetStops === 'always') return true;
+          if (resetStops === 'never') return false;
+
+          const stops = state.colorPlan.stops;
+          if (!Array.isArray(stops) || stops.length === 0) return true;
+
+          const idSet = new Set(normalized.map((f) => f.id));
+          for (const stop of stops) {
+            if (!idSet.has(stop.filamentId)) return true;
+          }
+
+          const enabledSet = new Set(normalized.filter((f) => f.enabled).map((f) => f.id));
+          const stopIdSet = new Set(stops.map((s) => s.filamentId));
+
+          if (enabledSet.size !== stopIdSet.size) return true;
+          for (const id of enabledSet) {
+            if (!stopIdSet.has(id)) return true;
+          }
+          return false;
+        })();
+
+        const nextStops = (() => {
+          if (!shouldResetStops) return state.colorPlan.stops;
+
+          const enabledFilaments = normalized
+            .filter((f) => f.enabled)
+            .sort((a, b) => a.orderIndex - b.orderIndex);
+          if (enabledFilaments.length === 0) return [];
+
+          const { minDepthMm, maxDepthMm } = state.modelGeometry;
+          const range = maxDepthMm - minDepthMm;
+          const step = range / enabledFilaments.length;
+
+          return enabledFilaments.map((f, i) => ({
+            filamentId: f.id,
+            thresholdZMm: minDepthMm + step * (i + 1),
+          }));
+        })();
+
+        return {
+          filaments: normalized,
+          colorPlan: { ...state.colorPlan, stops: nextStops },
+          isDirty: true,
+        };
+      }),
+
     // Settings actions
     setModelGeometry: (settings) =>
       set((state) => ({
@@ -248,13 +370,37 @@ export const useProjectStore = create<ProjectStore>()(
           field => settings[field] !== undefined && settings[field] !== state.printSettings[field]
         );
         
-        // If affects resolution and user has manually set it, we'll need to show modal
-        // The component calling this should handle the modal logic
+        let showResolutionModal = state.showResolutionModal;
+        let pendingResolutionChange = state.pendingResolutionChange;
+
+        // Auto-update mesh resolution when possible (web UX):
+        // - If the user hasn't manually set it, keep it synced to the recommendation.
+        // - If the user HAS manually set it, surface the resolution change modal.
+        if (affectsResolution && state.heightmapWidth > 0 && state.heightmapHeight > 0) {
+          const recommended = calculateRecommendedResolution(
+            newSettings.widthMm,
+            newSettings.heightMm,
+            newSettings.nozzleDiameter,
+            state.heightmapWidth,
+            state.heightmapHeight
+          );
+
+          if (!state.printSettings.meshResolutionManuallySet) {
+            newSettings.meshResolution = recommended;
+            newSettings.meshResolutionManuallySet = false;
+          } else if (recommended !== state.printSettings.meshResolution) {
+            showResolutionModal = true;
+            pendingResolutionChange = recommended;
+          }
+        }
         
         return {
           printSettings: newSettings,
           isDirty: true,
-          meshReady: false,
+          // Print settings do not affect the heightmap; keep current readiness.
+          meshReady: state.meshReady,
+          showResolutionModal,
+          pendingResolutionChange,
         };
       }),
 
@@ -416,6 +562,11 @@ export const useProjectStore = create<ProjectStore>()(
 
     setProcessing: (processing) => set({ isProcessing: processing }),
 
+    requestHeightmapRecompute: () =>
+      set((state) => ({
+        heightmapRecomputeNonce: state.heightmapRecomputeNonce + 1,
+      })),
+
     // UI state
     setActiveView: (view) => set({ activeView: view }),
 
@@ -527,6 +678,7 @@ export const useProjectStore = create<ProjectStore>()(
 
           activeView: 'preview',
           isDirty: true,
+          heightmapRecomputeNonce: state.heightmapRecomputeNonce + 1,
         };
       }),
 
@@ -557,6 +709,14 @@ export const useProjectStore = create<ProjectStore>()(
             mode: loadedMode ?? 'transmission',
             stops: Array.isArray(loadedStops) ? loadedStops : [],
           },
+          // Clear derived artifacts (always recompute in web)
+          heightmapData: null,
+          heightmapWidth: 0,
+          heightmapHeight: 0,
+          previewData: null,
+          meshReady: false,
+          // Force recompute even if image/settings match previous session
+          heightmapRecomputeNonce: current.heightmapRecomputeNonce + 1,
           isDirty: false,
         };
       }),
@@ -566,6 +726,7 @@ export const useProjectStore = create<ProjectStore>()(
       const project = {
         imagePath: state.imagePath,
         imageData: state.imageData,
+        imageAspectRatio: state.imageAspectRatio,
         filaments: state.filaments,
         modelGeometry: state.modelGeometry,
         printSettings: state.printSettings,

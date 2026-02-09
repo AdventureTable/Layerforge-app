@@ -48,15 +48,7 @@ function GithubIcon() {
 
 export function AboutModal({ opened, onClose }: AboutModalProps) {
   const openLink = (url: string) => {
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
-      import('@tauri-apps/plugin-shell').then(({ open }) => {
-        open(url);
-      }).catch(() => {
-        window.open(url, '_blank');
-      });
-    } else {
-      window.open(url, '_blank');
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
