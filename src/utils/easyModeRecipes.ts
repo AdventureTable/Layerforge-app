@@ -264,84 +264,189 @@ export const generateExploreRecipes = (params: {
   layerHeightMm: number;
 }): EasyModeRecipe[] => {
   const { selectedFilaments, layerHeightMm } = params;
-  const ordered = sortFilamentsByTd(selectedFilaments);
-  const filamentOrderIds = ordered.map((f) => f.id);
-  const base = autoDepthRangeFromFilaments(ordered, layerHeightMm);
-  const baseRange = base.maxDepthMm - base.minDepthMm;
+  const safeLayerH = layerHeightMm > 0 ? layerHeightMm : 0.08;
+  const orderedBase = sortFilamentsByTd(selectedFilaments);
+  if (orderedBase.length === 0) return [];
 
-  const depthOptions = [
-    { key: 'shallow', label: 'Shallow', scale: EASY_MODE_SHALLOW_SCALE },
-    { key: 'deep', label: 'Deep', scale: EASY_MODE_DEEP_SCALE },
+  const baseOrderIds = orderedBase.map((f) => f.id);
+  const byId = new Map(orderedBase.map((f) => [f.id, f]));
+
+  const baseDepth = autoDepthRangeFromFilaments(orderedBase, safeLayerH);
+  const baseRange = baseDepth.maxDepthMm - baseDepth.minDepthMm;
+
+  const depthVariants = [
+    { key: 'thin', label: 'Thin', scale: EASY_MODE_SHALLOW_SCALE },
+    { key: 'thick', label: 'Thick', scale: EASY_MODE_DEEP_SCALE },
   ] as const;
 
-  const toneOptions = [
-    { key: 'gamma', label: 'Gamma', mode: 'gamma' as const },
-    { key: 'curve', label: 'Curve', mode: 'curve' as const },
-  ] as const;
+  type OrderPreset = 'td' | 'swap_mid' | 'swap_dark';
+  const applyOrderPreset = (orderIds: string[], preset: OrderPreset): string[] => {
+    const n = orderIds.length;
+    if (preset === 'td' || n < 2) return [...orderIds];
 
-  const stopOptions = [
-    { key: 'weighted', label: 'Weighted', strategy: 'weighted' as const },
-    { key: 'linear', label: 'Linear', strategy: 'linear' as const },
-  ] as const;
+    const next = [...orderIds];
+    const swap = (i: number, j: number) => {
+      const tmp = next[i];
+      next[i] = next[j];
+      next[j] = tmp;
+    };
 
-  const luminanceOptions = [
-    { key: 'rec601', label: 'Rec.601', method: 'rec601' as const },
-    { key: 'rec709', label: 'Rec.709', method: 'rec709' as const },
-  ] as const;
+    if (preset === 'swap_dark') {
+      swap(n - 2, n - 1);
+      return next;
+    }
+
+    // swap_mid: swap the two central IDs (fallback is still meaningful for n=2/3)
+    const midRight = Math.floor(n / 2);
+    const midLeft = Math.max(0, midRight - 1);
+    if (midLeft !== midRight) swap(midLeft, midRight);
+    return next;
+  };
+
+  const EXPLORE_LOOKS: Array<{
+    key: string;
+    label: string;
+    luminanceMethod: EasyModeRecipe['luminanceMethod'];
+    toneMappingMode: EasyModeRecipe['toneMappingMode'];
+    transferCurve?: TransferCurvePoint[];
+    gamma?: number;
+    contrast?: number;
+    offset?: number;
+    dynamicDepth: boolean;
+    stopStrategy: EasyModeRecipe['stopStrategy'];
+    orderPreset: OrderPreset;
+  }> = [
+    // Safe (6 looks → 12 tiles)
+    {
+      key: 'balanced',
+      label: 'Balanced (Recommended)',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_S_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    {
+      key: 'balanced_dyn_off',
+      label: 'Balanced (Dyn OFF)',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_S_CURVE,
+      dynamicDepth: false,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    {
+      key: 'contrast_strong_s',
+      label: 'High contrast',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_STRONG_S_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    {
+      key: 'lift_shadows',
+      label: 'Lift shadows',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_LIFT_SHADOWS_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    {
+      key: 'poster_linear',
+      label: 'Posterized layers',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'gamma',
+      gamma: 1.0,
+      contrast: 1.0,
+      offset: 0.0,
+      dynamicDepth: false,
+      stopStrategy: 'linear',
+      orderPreset: 'td',
+    },
+    {
+      key: 'legacy_rec601',
+      label: 'Rec.601 (Legacy)',
+      luminanceMethod: 'rec601',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_S_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    // Experimental (2 looks → 4 tiles)
+    {
+      key: 'color_pop',
+      label: 'Color pop',
+      luminanceMethod: 'color_pop',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_STRONG_S_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'td',
+    },
+    {
+      key: 'order_swap_mid',
+      label: 'Order experiment (mid swap)',
+      luminanceMethod: 'rec709',
+      toneMappingMode: 'curve',
+      transferCurve: EASY_MODE_S_CURVE,
+      dynamicDepth: true,
+      stopStrategy: 'weighted',
+      orderPreset: 'swap_mid',
+    },
+  ];
+
+  const resolveOrder = (orderIds: string[]) => {
+    const filamentsInOrder = orderIds
+      .map((id) => byId.get(id))
+      .filter((f): f is Filament => Boolean(f));
+    return filamentsInOrder.length > 0 ? filamentsInOrder : orderedBase;
+  };
 
   const recipes: EasyModeRecipe[] = [];
 
-  for (const depth of depthOptions) {
-    for (const tone of toneOptions) {
-      for (const stopOpt of stopOptions) {
-        for (const lum of luminanceOptions) {
-          const range = baseRange * depth.scale;
-          const minDepthMm = base.minDepthMm;
-          let maxDepthMm = minDepthMm + range;
-          maxDepthMm = clamp(maxDepthMm, minDepthMm + 2 * layerHeightMm, EASY_MODE_MAX_MAX_DEPTH_MM);
-          maxDepthMm = quantizeNearest(maxDepthMm, layerHeightMm);
+  for (const depthVariant of depthVariants) {
+    const minDepthMm = baseDepth.minDepthMm;
+    let maxDepthMm = minDepthMm + baseRange * depthVariant.scale;
+    maxDepthMm = clamp(maxDepthMm, minDepthMm + 2 * safeLayerH, EASY_MODE_MAX_MAX_DEPTH_MM);
+    maxDepthMm = quantizeNearest(maxDepthMm, safeLayerH);
+    maxDepthMm = clamp(maxDepthMm, minDepthMm + 2 * safeLayerH, EASY_MODE_MAX_MAX_DEPTH_MM);
 
-          // Fractional factorial: use 4 binary factors (depth/tone/stops/luminance) and derive dynamicDepth
-          // to keep 16 tiles while still showing Dyn ON/OFF.
-          const dynamicDepth = Boolean(
-            (depth.key === 'deep' ? 1 : 0) ^
-              (tone.key === 'curve' ? 1 : 0) ^
-              (stopOpt.key === 'linear' ? 1 : 0) ^
-              (lum.key === 'rec709' ? 1 : 0)
-          );
+    for (const look of EXPLORE_LOOKS) {
+      const filamentOrderIds = applyOrderPreset(baseOrderIds, look.orderPreset);
+      const filamentsInOrder = resolveOrder(filamentOrderIds);
 
-          const { stops, hadCollisions } =
-            stopOpt.strategy === 'linear'
-              ? computeLinearStops(ordered, minDepthMm, maxDepthMm, layerHeightMm)
-              : computeWeightedStops(ordered, minDepthMm, maxDepthMm, layerHeightMm);
+      const { stops, hadCollisions } =
+        look.stopStrategy === 'linear'
+          ? computeLinearStops(filamentsInOrder, minDepthMm, maxDepthMm, safeLayerH)
+          : computeWeightedStops(filamentsInOrder, minDepthMm, maxDepthMm, safeLayerH);
 
-          const warnings: string[] = [];
-          if (hadCollisions) warnings.push('Depth range too small for clean stops');
+      const warnings: string[] = [];
+      if (hadCollisions) warnings.push('Depth range too small for clean stops');
 
-          const id = `explore_${depth.key}_${tone.key}_${stopOpt.key}_${lum.key}`;
-          const label = `${depth.label} • ${tone.label} • ${dynamicDepth ? 'Dyn ON' : 'Dyn OFF'} • ${stopOpt.label} stops • ${lum.label}`;
-
-          const recipe: EasyModeRecipe = {
-            id,
-            label,
-            minDepthMm,
-            maxDepthMm,
-            dynamicDepth,
-            luminanceMethod: lum.method,
-            toneMappingMode: tone.mode,
-            gamma: tone.mode === 'gamma' ? 1.0 : undefined,
-            contrast: tone.mode === 'gamma' ? 1.0 : undefined,
-            offset: tone.mode === 'gamma' ? 0.0 : undefined,
-            transferCurve: tone.mode === 'curve' ? EASY_MODE_S_CURVE : undefined,
-            stopStrategy: stopOpt.strategy,
-            filamentOrderIds,
-            stops,
-            warnings: warnings.length ? warnings : undefined,
-          };
-
-          recipes.push(recipe);
-        }
-      }
+      recipes.push({
+        id: `explore_${look.key}_${depthVariant.key}`,
+        label: `${look.label} • ${depthVariant.label}`,
+        minDepthMm,
+        maxDepthMm,
+        dynamicDepth: look.dynamicDepth,
+        luminanceMethod: look.luminanceMethod,
+        toneMappingMode: look.toneMappingMode,
+        gamma: look.toneMappingMode === 'gamma' ? look.gamma ?? 1.0 : undefined,
+        contrast: look.toneMappingMode === 'gamma' ? look.contrast ?? 1.0 : undefined,
+        offset: look.toneMappingMode === 'gamma' ? look.offset ?? 0.0 : undefined,
+        transferCurve: look.toneMappingMode === 'curve' ? look.transferCurve ?? EASY_MODE_S_CURVE : undefined,
+        stopStrategy: look.stopStrategy,
+        filamentOrderIds,
+        stops,
+        warnings: warnings.length ? warnings : undefined,
+      });
     }
   }
 
@@ -419,7 +524,7 @@ export const generateRefineRecipes = (params: {
     let maxDepthMm = clampToStep(center.maxDepthMm, safeLayerH);
     let depthScale = 1.0;
     if (kind !== 'elite') {
-      depthScale = kind === 'explore' ? (rng() < 0.5 ? 0.85 : 1.25) : depthScales[(variantIndex - 1) % depthScales.length];
+      depthScale = kind === 'explore' ? (rng() < 0.5 ? 0.85 : 1.15) : depthScales[(variantIndex - 1) % depthScales.length];
       const nextRange = baseRange * depthScale;
       maxDepthMm = clampToStep(minDepthMm + nextRange, safeLayerH);
       maxDepthMm = clamp(maxDepthMm, minDepthMm + 2 * safeLayerH, EASY_MODE_MAX_MAX_DEPTH_MM);

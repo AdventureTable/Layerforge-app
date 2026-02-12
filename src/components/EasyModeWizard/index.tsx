@@ -108,6 +108,9 @@ function RecipeTile(props: {
   const orderNames = recipe.filamentOrderIds
     .map((id) => filamentNameById.get(id) ?? id)
     .join(' → ');
+  const depthVariant =
+    recipe.id.endsWith('_thin') ? 'Thin' : recipe.id.endsWith('_thick') ? 'Thick' : null;
+  const isRecommended = recipe.id === 'explore_balanced_thin';
 
   return (
     <Card
@@ -123,6 +126,11 @@ function RecipeTile(props: {
         {selected && (
           <Badge size="xs" variant="filled" color="forge" style={{ position: 'absolute', top: 8, left: 8 }}>
             Selected
+          </Badge>
+        )}
+        {isRecommended && (
+          <Badge size="xs" variant="filled" color="blue" style={{ position: 'absolute', top: 8, right: 8 }}>
+            Recommended
           </Badge>
         )}
       </Box>
@@ -142,6 +150,11 @@ function RecipeTile(props: {
               Order
             </Badge>
           </Tooltip>
+        )}
+        {depthVariant && (
+          <Badge size="xs" variant="light">
+            {depthVariant}
+          </Badge>
         )}
         <Badge size="xs" variant="light">
           Depth {metrics.depthMm.toFixed(2)}mm
