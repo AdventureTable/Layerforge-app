@@ -14,11 +14,6 @@ import { AboutModal } from '../AboutModal';
 
 const ADVENTURE_TABLE_URL = 'https://adventure-table.com/';
 
-// Check if running in Tauri
-const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
-
 // Help Icon
 function HelpIcon() {
   return (
@@ -35,19 +30,6 @@ function HeartIcon() {
     </svg>
   );
 }
-
-// Convert Uint8Array to base64 without stack overflow
-const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
-  const CHUNK_SIZE = 0x8000; // 32KB chunks
-  const chunks: string[] = [];
-  
-  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
-    chunks.push(String.fromCharCode.apply(null, chunk as unknown as number[]));
-  }
-  
-  return btoa(chunks.join(''));
-};
 
 export function Header() {
   const [aboutOpened, { open: openAbout, close: closeAbout }] = useDisclosure(false);
@@ -93,135 +75,49 @@ export function Header() {
   };
 
   const handleOpenImage = async () => {
-    if (!isTauri()) {
-      // Fallback for browser: use file input
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/png,image/jpeg,image/webp';
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const dataUrl = reader.result as string;
-            setImage(file.name, dataUrl);
-            updateDimensionsFromImage(dataUrl);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      input.click();
-      return;
-    }
-
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const { readFile } = await import('@tauri-apps/plugin-fs');
-      
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: 'Images',
-            extensions: ['png', 'jpg', 'jpeg', 'webp'],
-          },
-        ],
-      });
-
-      if (selected) {
-        const path = typeof selected === 'string' ? selected : (selected as { path: string }).path;
-        const contents = await readFile(path);
-        const base64 = uint8ArrayToBase64(new Uint8Array(contents));
-        const ext = path.split('.').pop()?.toLowerCase() || 'png';
-        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-        const dataUrl = `data:${mime};base64,${base64}`;
-        setImage(path, dataUrl);
-        updateDimensionsFromImage(dataUrl);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          setImage(file.name, dataUrl);
+          updateDimensionsFromImage(dataUrl);
+        };
+        reader.readAsDataURL(file);
       }
-    } catch (error) {
-      console.error('Failed to open image:', error);
-    }
+    };
+    input.click();
   };
 
   const handleSaveProject = async () => {
     const json = getProjectJSON();
-    
-    if (!isTauri()) {
-      // Fallback for browser: download file
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'project.cfproj';
-      a.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
 
-    try {
-      const { save } = await import('@tauri-apps/plugin-dialog');
-      const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-      
-      const path = await save({
-        filters: [
-          {
-            name: 'LayerForge Project',
-            extensions: ['cfproj'],
-          },
-        ],
-        defaultPath: 'project.cfproj',
-      });
-
-      if (path) {
-        await writeTextFile(path, json);
-      }
-    } catch (error) {
-      console.error('Failed to save project:', error);
-    }
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project.cfproj';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleOpenProject = async () => {
-    if (!isTauri()) {
-      // Fallback for browser: use file input
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.cfproj,application/json';
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const text = await file.text();
-          const project = JSON.parse(text);
-          loadProject(project);
-        }
-      };
-      input.click();
-      return;
-    }
-
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const { readFile } = await import('@tauri-apps/plugin-fs');
-      
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: 'LayerForge Project',
-            extensions: ['cfproj'],
-          },
-        ],
-      });
-
-      if (selected) {
-        const path = typeof selected === 'string' ? selected : (selected as { path: string }).path;
-        const contents = await readFile(path);
-        const json = new TextDecoder().decode(contents);
-        const project = JSON.parse(json);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.cfproj,application/json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const text = await file.text();
+        const project = JSON.parse(text);
         loadProject(project);
       }
-    } catch (error) {
-      console.error('Failed to open project:', error);
-    }
+    };
+    input.click();
   };
 
   return (
@@ -370,16 +266,7 @@ export function Header() {
             style={{ textDecoration: 'none' }}
             onClick={(e) => {
               e.preventDefault();
-              // Use Tauri's shell open if available
-              if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                import('@tauri-apps/plugin-shell').then(({ open }) => {
-                  open(ADVENTURE_TABLE_URL);
-                }).catch(() => {
-                  window.open(ADVENTURE_TABLE_URL, '_blank');
-                });
-              } else {
-                window.open(ADVENTURE_TABLE_URL, '_blank');
-              }
+              window.open(ADVENTURE_TABLE_URL, '_blank', 'noopener,noreferrer');
             }}
           >
             Adventure Table

@@ -6,6 +6,7 @@ import {
   ScrollArea,
   Card,
   Group,
+  Menu,
   ColorInput,
   TextInput,
   NumberInput,
@@ -18,6 +19,7 @@ import {
 import { useProjectStore } from '../../stores/projectStore';
 import { calculateTdFromD50 } from '../../types';
 import type { Filament } from '../../types';
+import { parseFilamentLibrary, serializeFilamentLibrary } from '../../utils/filamentLibraryIO';
 
 function generateId() {
   return `filament_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -101,11 +103,15 @@ function FilamentCard({
 }
 
 export function FilamentPanel() {
-  const { filaments, addFilament, removeFilament, updateFilament } = useProjectStore();
+  const { filaments, addFilament, removeFilament, updateFilament, replaceFilaments } = useProjectStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [libraryIoModalOpen, setLibraryIoModalOpen] = useState(false);
+  const [libraryIoTitle, setLibraryIoTitle] = useState('');
+  const [libraryIoMessage, setLibraryIoMessage] = useState('');
+  const [libraryIoIsError, setLibraryIoIsError] = useState(false);
   const [filamentToDelete, setFilamentToDelete] = useState<Filament | null>(null);
   const [filamentToEdit, setFilamentToEdit] = useState<Filament | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,6 +149,53 @@ export function FilamentPanel() {
     addFilament(filament);
     setNewFilament({ name: '', hexColor: '#FFFFFF', d50Mm: 0.85 });
     setModalOpen(false);
+  };
+
+  const showLibraryIoMessage = (title: string, message: string, isError: boolean) => {
+    setLibraryIoTitle(title);
+    setLibraryIoMessage(message);
+    setLibraryIoIsError(isError);
+    setLibraryIoModalOpen(true);
+  };
+
+  const handleExportLibrary = () => {
+    const json = serializeFilamentLibrary(filaments);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `layerforge-filaments-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportLibrary = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const imported = parseFilamentLibrary(text);
+        replaceFilaments(imported, 'if_invalid');
+        showLibraryIoMessage(
+          'Import complete',
+          `Imported ${imported.length} filaments from "${file.name}".`,
+          false
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        showLibraryIoMessage('Import failed', msg, true);
+      } finally {
+        // allow re-importing the same file
+        input.value = '';
+      }
+    };
+    input.click();
   };
 
   const handleDeleteClick = (filament: Filament) => {
@@ -203,16 +256,37 @@ export function FilamentPanel() {
         <Text size="sm" fw={600} c="forge.0">
           Filament Library
         </Text>
-        <Button 
-          size="xs" 
-          variant="filled" 
-          onClick={() => setModalOpen(true)}
-          style={{ 
-            boxShadow: '0 0 10px rgba(31, 174, 122, 0.3)',
-          }}
-        >
-          + Add
-        </Button>
+        <Group gap="xs">
+          <Menu position="bottom-end" shadow="md" withinPortal>
+            <Menu.Target>
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                aria-label="Library actions"
+                style={{ opacity: 0.8 }}
+              >
+                <Text size="sm" fw={700}>
+                  ...
+                </Text>
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item onClick={handleImportLibrary}>Import library...</Menu.Item>
+              <Menu.Item onClick={handleExportLibrary}>Export library</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+
+          <Button 
+            size="xs" 
+            variant="filled" 
+            onClick={() => setModalOpen(true)}
+            style={{ 
+              boxShadow: '0 0 10px rgba(31, 174, 122, 0.3)',
+            }}
+          >
+            + Add
+          </Button>
+        </Group>
       </Group>
 
       {/* Search input */}
@@ -500,6 +574,25 @@ export function FilamentPanel() {
               Cancel
             </Button>
             <Button onClick={handleSaveEdit}>Save</Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Import/Export feedback */}
+      <Modal
+        opened={libraryIoModalOpen}
+        onClose={() => setLibraryIoModalOpen(false)}
+        title={libraryIoTitle}
+        size="sm"
+      >
+        <Stack gap="sm">
+          <Text size="sm" c={libraryIoIsError ? 'red' : 'dimmed'}>
+            {libraryIoMessage}
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="light" onClick={() => setLibraryIoModalOpen(false)}>
+              Close
+            </Button>
           </Group>
         </Stack>
       </Modal>

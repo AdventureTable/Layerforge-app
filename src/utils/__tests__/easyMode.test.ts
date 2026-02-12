@@ -77,6 +77,19 @@ describe('easyModeRecipes', () => {
     });
     expect(recipes).toHaveLength(16);
     expect(new Set(recipes.map((r) => r.id)).size).toBe(16);
+
+    const depthKeys = new Set<string>();
+    const lookKeys = new Set<string>();
+    for (const recipe of recipes) {
+      const match = recipe.id.match(/^explore_(.+)_(thin|thick)$/);
+      expect(match).not.toBeNull();
+      if (!match) continue;
+      lookKeys.add(match[1]);
+      depthKeys.add(match[2]);
+    }
+    expect(depthKeys.size).toBe(2);
+    expect(lookKeys.size).toBe(8);
+
     expect(new Set(recipes.map((r) => r.stopStrategy)).size).toBeGreaterThan(1);
     expect(new Set(recipes.map((r) => r.dynamicDepth)).size).toBeGreaterThan(1);
   });

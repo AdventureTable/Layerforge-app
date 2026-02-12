@@ -154,15 +154,14 @@ export function PreviewCanvas() {
       } = modelGeometry;
       const depthRange = maxDepthMm - minDepthMm;
 
-      // Sort stops by threshold
-      const sortedStops = [...colorPlan.stops].sort(
-        (a, b) => a.thresholdZMm - b.thresholdZMm
-      );
+      // Sort stops by threshold (enabled filaments only)
+      const enabledIds = new Set(enabledFilaments.map((f) => f.id));
+      const sortedStops = [...colorPlan.stops]
+        .filter((s) => enabledIds.has(s.filamentId))
+        .sort((a, b) => a.thresholdZMm - b.thresholdZMm);
 
-      // Create a map of filament id to filament data
-      const filamentMap = new Map(
-        enabledFilaments.map((f) => [f.id, f])
-      );
+      const filamentMap = new Map(enabledFilaments.map((f) => [f.id, f]));
+      const defaultFilament = enabledFilaments[enabledFilaments.length - 1];
 
       const pxCount = data.length / 4;
       const processed = new Float32Array(pxCount);
@@ -200,11 +199,10 @@ export function PreviewCanvas() {
         const depth = minDepthMm + processed[pi] * depthRange;
 
         // Find which filament applies at this depth
-        let filament = enabledFilaments[0];
+        let filament = defaultFilament;
         for (const stop of sortedStops) {
-          if (depth <= stop.thresholdZMm) {
-            const f = filamentMap.get(stop.filamentId);
-            if (f) filament = f;
+          if (depth <= stop.thresholdZMm + 1e-6) {
+            filament = filamentMap.get(stop.filamentId) ?? filament;
             break;
           }
         }

@@ -17,11 +17,6 @@ import { useProjectStore, useRecommendedResolution, useImageResolution } from '.
 import { DEFAULT_MODEL_GEOMETRY, getResolutionStatus, calculateRecommendedResolution } from '../../types';
 import { TransferCurveEditor } from '../TransferCurveEditor';
 
-// Check if running in Tauri
-const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
-
 export function ModelGeometry() {
   const {
     modelGeometry,
@@ -35,13 +30,9 @@ export function ModelGeometry() {
     lockAspectRatio,
     setLockAspectRatio,
     imageAspectRatio,
-    imagePath,
-    setProcessing,
-    setHeightmapData,
-    setMeshReady,
-    initializeColorStops,
     heightmapWidth,
     heightmapHeight,
+    requestHeightmapRecompute,
   } = useProjectStore();
 
   const recommendedResolution = useRecommendedResolution();
@@ -52,69 +43,11 @@ export function ModelGeometry() {
     imageResolution || 1000
   );
 
-  // Trigger regeneration only if Python sidecar is available
-  const triggerRegeneration = async () => {
-    if (!imagePath || !isTauri()) return;
-
-    setProcessing(true);
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      
-      // Get the latest state to avoid stale closure values
-      const currentState = useProjectStore.getState();
-      const currentGeometry = currentState.modelGeometry;
-      
-      const response = await invoke<{
-        heightmap_base64: string;
-        width: number;
-        height: number;
-      }>('process_image', {
-        request: {
-          image_path: imagePath,
-          geometry: {
-            min_depth_mm: currentGeometry.minDepthMm,
-            max_depth_mm: currentGeometry.maxDepthMm,
-            gamma: currentGeometry.gamma,
-            contrast: currentGeometry.contrast,
-            offset: currentGeometry.offset,
-            smoothing: currentGeometry.smoothing,
-            spike_removal: currentGeometry.spikeRemoval,
-            luminance_method: currentGeometry.luminanceMethod,
-            tone_mapping_mode: currentGeometry.toneMappingMode,
-            transfer_curve: currentGeometry.transferCurve,
-            dynamic_depth: currentGeometry.dynamicDepth,
-            invert: currentGeometry.invert,
-          },
-        },
-      });
-
-      setHeightmapData(
-        response.heightmap_base64,
-        response.width,
-        response.height
-      );
-      setMeshReady(true);
-      // Only initialize stops if none exist (preserve user's slider positions)
-      const currentStops = useProjectStore.getState().colorPlan.stops;
-      if (currentStops.length === 0) {
-        initializeColorStops();
-      }
-    } catch (error) {
-      // Silently ignore sidecar errors - the JS preview still works
-      console.debug('Python sidecar not available, using JS preview');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   const handleChange = <K extends keyof typeof modelGeometry>(
     key: K,
     value: (typeof modelGeometry)[K]
   ) => {
     setModelGeometry({ [key]: value });
-    if (liveUpdate) {
-      triggerRegeneration();
-    }
   };
 
   const handlePrintChange = <K extends keyof typeof printSettings>(
@@ -122,9 +55,6 @@ export function ModelGeometry() {
     value: (typeof printSettings)[K]
   ) => {
     setPrintSettings({ [key]: value });
-    if (liveUpdate) {
-      triggerRegeneration();
-    }
   };
 
   // Check if resolution needs to change and handle modal logic
@@ -157,9 +87,6 @@ export function ModelGeometry() {
       setPrintSettings({ widthMm: width });
     }
     handleResolutionAffectingChange(width, newHeight);
-    if (liveUpdate) {
-      triggerRegeneration();
-    }
   };
 
   // Handle height change with aspect ratio lock
@@ -172,9 +99,6 @@ export function ModelGeometry() {
       setPrintSettings({ heightMm: height });
     }
     handleResolutionAffectingChange(newWidth, height);
-    if (liveUpdate) {
-      triggerRegeneration();
-    }
   };
 
   // Handle nozzle diameter change
@@ -505,7 +429,7 @@ export function ModelGeometry() {
       </Text>
 
           {!liveUpdate && (
-            <Button size="xs" onClick={triggerRegeneration}>
+            <Button size="xs" onClick={requestHeightmapRecompute}>
               Apply Changes
             </Button>
           )}

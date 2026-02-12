@@ -28,22 +28,6 @@ import { computeRecipeMetrics } from '../../utils/easyModeMetrics';
 import { generateExploreRecipes, generateRefineRecipes, sortFilamentsByTd } from '../../utils/easyModeRecipes';
 import { renderRecipeThumbnailsBatch } from '../../utils/easyModePreview';
 
-// Check if running in Tauri
-const isTauri = () => typeof window !== 'undefined' && '__TAURI__' in window;
-
-// Convert Uint8Array to base64 without stack overflow
-const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
-  const CHUNK_SIZE = 0x8000; // 32KB chunks
-  const chunks: string[] = [];
-
-  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
-    chunks.push(String.fromCharCode.apply(null, chunk as unknown as number[]));
-  }
-
-  return btoa(chunks.join(''));
-};
-
 type WizardStepId = 'image' | 'filaments' | 'explore' | 'refine';
 
 type DraftImage = EasyModeDraftImage;
@@ -124,6 +108,9 @@ function RecipeTile(props: {
   const orderNames = recipe.filamentOrderIds
     .map((id) => filamentNameById.get(id) ?? id)
     .join(' → ');
+  const depthVariant =
+    recipe.id.endsWith('_thin') ? 'Thin' : recipe.id.endsWith('_thick') ? 'Thick' : null;
+  const isRecommended = recipe.id === 'explore_balanced_thin';
 
   return (
     <Card
@@ -139,6 +126,11 @@ function RecipeTile(props: {
         {selected && (
           <Badge size="xs" variant="filled" color="forge" style={{ position: 'absolute', top: 8, left: 8 }}>
             Selected
+          </Badge>
+        )}
+        {isRecommended && (
+          <Badge size="xs" variant="filled" color="blue" style={{ position: 'absolute', top: 8, right: 8 }}>
+            Recommended
           </Badge>
         )}
       </Box>
@@ -158,6 +150,11 @@ function RecipeTile(props: {
               Order
             </Badge>
           </Tooltip>
+        )}
+        {depthVariant && (
+          <Badge size="xs" variant="light">
+            {depthVariant}
+          </Badge>
         )}
         <Badge size="xs" variant="light">
           Depth {metrics.depthMm.toFixed(2)}mm
@@ -193,10 +190,6 @@ export function EasyModeWizard() {
   const addFilament = useProjectStore((s) => s.addFilament);
   const updateFilament = useProjectStore((s) => s.updateFilament);
   const removeFilament = useProjectStore((s) => s.removeFilament);
-
-  const setProcessing = useProjectStore((s) => s.setProcessing);
-  const setHeightmapData = useProjectStore((s) => s.setHeightmapData);
-  const setMeshReady = useProjectStore((s) => s.setMeshReady);
 
   const needsImageStep = !imageData;
   const steps: WizardStepId[] = useMemo(
@@ -296,83 +289,40 @@ export function EasyModeWizard() {
   };
 
   const openImageForWizard = async () => {
-    if (!isTauri()) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/png,image/jpeg,image/webp';
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result as string;
-          const img = new window.Image();
-          img.onload = () => {
-            const aspectRatio = img.width / img.height;
-            const dims = computeDimsFromAspect({
-              aspectRatio,
-              currentWidthMm: printSettings.widthMm,
-              currentHeightMm: printSettings.heightMm,
-            });
-            setDraftImage({
-              path: file.name,
-              dataUrl,
-              aspectRatio,
-              widthMm: dims.widthMm,
-              heightMm: dims.heightMm,
-            });
-            generationTokenRef.current++;
-            setThumbs({});
-            if (step === 'image') setStep('filaments');
-          };
-          img.src = dataUrl;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          const aspectRatio = img.width / img.height;
+          const dims = computeDimsFromAspect({
+            aspectRatio,
+            currentWidthMm: printSettings.widthMm,
+            currentHeightMm: printSettings.heightMm,
+          });
+          setDraftImage({
+            path: file.name,
+            dataUrl,
+            aspectRatio,
+            widthMm: dims.widthMm,
+            heightMm: dims.heightMm,
+          });
+          generationTokenRef.current++;
+          setThumbs({});
+          if (step === 'image') setStep('filaments');
         };
-        reader.readAsDataURL(file);
+        img.src = dataUrl;
       };
-      input.click();
-      return;
-    }
-
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const { readFile } = await import('@tauri-apps/plugin-fs');
-      const selected = await open({
-        multiple: false,
-        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
-      });
-      if (!selected) return;
-
-      const path = typeof selected === 'string' ? selected : (selected as { path: string }).path;
-      const contents = await readFile(path);
-      const base64 = uint8ArrayToBase64(new Uint8Array(contents));
-      const ext = path.split('.').pop()?.toLowerCase() || 'png';
-      const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-      const dataUrl = `data:${mime};base64,${base64}`;
-
-      const img = new window.Image();
-      img.onload = () => {
-        const aspectRatio = img.width / img.height;
-        const dims = computeDimsFromAspect({
-          aspectRatio,
-          currentWidthMm: printSettings.widthMm,
-          currentHeightMm: printSettings.heightMm,
-        });
-        setDraftImage({
-          path,
-          dataUrl,
-          aspectRatio,
-          widthMm: dims.widthMm,
-          heightMm: dims.heightMm,
-        });
-        generationTokenRef.current++;
-        setThumbs({});
-        if (step === 'image') setStep('filaments');
-      };
-      img.src = dataUrl;
-    } catch (err) {
-      console.error('Easy Mode: failed to open image:', err);
-    }
+      reader.readAsDataURL(file);
+    };
+    input.click();
   };
 
   const canGoToExplore = !!wizardImageDataUrl && selectedFilamentIds.length > 0;
@@ -531,47 +481,6 @@ export function EasyModeWizard() {
       });
 
       closeWizard();
-
-      if (!isTauri()) return;
-      const state = useProjectStore.getState();
-      if (!state.imagePath) return;
-
-      setProcessing(true);
-      try {
-        const { invoke } = await import('@tauri-apps/api/core');
-        const currentState = useProjectStore.getState();
-        const g = currentState.modelGeometry;
-
-        const response = await invoke<{ heightmap_base64: string; width: number; height: number }>(
-          'process_image',
-          {
-            request: {
-              image_path: currentState.imagePath,
-              geometry: {
-                min_depth_mm: g.minDepthMm,
-                max_depth_mm: g.maxDepthMm,
-                gamma: g.gamma,
-                contrast: g.contrast,
-                offset: g.offset,
-                smoothing: g.smoothing,
-                spike_removal: g.spikeRemoval,
-                luminance_method: g.luminanceMethod,
-                tone_mapping_mode: g.toneMappingMode,
-                transfer_curve: g.transferCurve,
-                dynamic_depth: g.dynamicDepth,
-                invert: g.invert,
-              },
-            },
-          }
-        );
-
-        setHeightmapData(response.heightmap_base64, response.width, response.height);
-        setMeshReady(true);
-      } catch (err) {
-        console.debug('Easy Mode: sidecar processing failed, using JS preview.', err);
-      } finally {
-        setProcessing(false);
-      }
     } finally {
       setIsApplying(false);
     }

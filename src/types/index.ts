@@ -19,6 +19,13 @@ export interface Filament {
   calibration?: FilamentCalibration;
 }
 
+export interface FilamentLibraryExportV1 {
+  format: 'layerforge_filaments';
+  version: 1;
+  exportedAt: string; // ISO timestamp
+  filaments: Filament[];
+}
+
 // ln(20) ≈ 2.996 - used for d95 calculation (5% transmission = 95% blocked)
 const LN_20 = Math.log(20);
 

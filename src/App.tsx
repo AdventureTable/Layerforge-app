@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import { AppShell } from '@mantine/core';
 import { FilamentPanel } from './components/FilamentPanel';
 import { PreviewArea } from './components/PreviewArea';
@@ -7,85 +6,10 @@ import { BottomPanel } from './components/BottomPanel';
 import { Header } from './components/Header';
 import { ResolutionChangeModal } from './components/ResolutionChangeModal';
 import { EasyModeWizard } from './components/EasyModeWizard';
-import { useProjectStore } from './stores/projectStore';
-
-// Check if running in Tauri
-const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
+import { useHeightmapProcessing } from './hooks/useHeightmapProcessing';
 
 function App() {
-  const { 
-    imagePath, 
-    imageData,
-    modelGeometry,
-    liveUpdate,
-    setProcessing,
-    setHeightmapData,
-    setMeshReady,
-    initializeColorStops,
-  } = useProjectStore();
-  
-  const lastProcessedRef = useRef<string | null>(null);
-
-  // Auto-process image with sidecar when imagePath changes
-  useEffect(() => {
-    const processWithSidecar = async () => {
-      if (!imagePath || !isTauri() || !liveUpdate) return;
-      if (lastProcessedRef.current === imagePath) return;
-      
-      lastProcessedRef.current = imagePath;
-      setProcessing(true);
-      
-      try {
-        const { invoke } = await import('@tauri-apps/api/core');
-        
-        const response = await invoke<{
-          heightmap_base64: string;
-          width: number;
-          height: number;
-        }>('process_image', {
-          request: {
-            image_path: imagePath,
-            geometry: {
-              min_depth_mm: modelGeometry.minDepthMm,
-              max_depth_mm: modelGeometry.maxDepthMm,
-              gamma: modelGeometry.gamma,
-              contrast: modelGeometry.contrast,
-              offset: modelGeometry.offset,
-              smoothing: modelGeometry.smoothing,
-              spike_removal: modelGeometry.spikeRemoval,
-              luminance_method: modelGeometry.luminanceMethod,
-              tone_mapping_mode: modelGeometry.toneMappingMode,
-              transfer_curve: modelGeometry.transferCurve,
-              dynamic_depth: modelGeometry.dynamicDepth,
-              invert: modelGeometry.invert,
-            },
-          },
-        });
-
-        setHeightmapData(
-          response.heightmap_base64,
-          response.width,
-          response.height
-        );
-        setMeshReady(true);
-        // Only initialize stops if none exist (preserve user's slider positions)
-        const currentStops = useProjectStore.getState().colorPlan.stops;
-        if (currentStops.length === 0) {
-          initializeColorStops();
-        }
-      } catch (error) {
-        console.debug('Sidecar processing failed, using JS preview:', error);
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    // Small delay to let other state settle
-    const timer = setTimeout(processWithSidecar, 100);
-    return () => clearTimeout(timer);
-  }, [imagePath, liveUpdate]);
+  useHeightmapProcessing();
 
   return (
     <AppShell

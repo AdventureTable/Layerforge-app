@@ -1,12 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, Text, Button } from '@mantine/core';
 import { useProjectStore, depthToLayer } from '../../stores/projectStore';
 import { SupportModal } from '../SupportModal';
-
-// Check if running in Tauri
-const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
+import type { StlWorkerOutput } from '../../workers/stlWorkerTypes';
 
 export function ExportPanel() {
   const {
@@ -23,65 +19,92 @@ export function ExportPanel() {
   } = useProjectStore();
   
   const [supportModalOpened, setSupportModalOpened] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportMessage, setExportMessage] = useState<string>('');
+  const workerRef = useRef<Worker | null>(null);
   const hasImage = !!imageData;
 
-  const handleExportSTL = async () => {
-    if (!isTauri()) {
-      alert('STL export requires the desktop app with Python sidecar');
-      return;
-    }
-    
-    try {
-      const { save } = await import('@tauri-apps/plugin-dialog');
-      const { invoke } = await import('@tauri-apps/api/core');
-      
-      const path = await save({
-        filters: [{ name: 'STL File', extensions: ['stl'] }],
-        defaultPath: `model_depth_${modelGeometry.minDepthMm}-${modelGeometry.maxDepthMm}_lh${printSettings.layerHeightMm}.stl`,
-      });
+  useEffect(() => {
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+    };
+  }, []);
 
-      if (path && heightmapData) {
-        setProcessing(true);
-        await invoke('export_stl', {
-          request: {
-            heightmap_base64: heightmapData,
-            width: heightmapWidth,
-            height: heightmapHeight,
-            geometry: {
-              min_depth_mm: modelGeometry.minDepthMm,
-              max_depth_mm: modelGeometry.maxDepthMm,
-              gamma: modelGeometry.gamma,
-              contrast: modelGeometry.contrast,
-              offset: modelGeometry.offset,
-              smoothing: modelGeometry.smoothing,
-              spike_removal: modelGeometry.spikeRemoval,
-              luminance_method: modelGeometry.luminanceMethod,
-              tone_mapping_mode: modelGeometry.toneMappingMode,
-              transfer_curve: modelGeometry.transferCurve,
-              dynamic_depth: modelGeometry.dynamicDepth,
-              invert: modelGeometry.invert,
-            },
-            print_settings: {
-              layer_height_mm: printSettings.layerHeightMm,
-              base_layer_mm: printSettings.baseLayerMm,
-              width_mm: printSettings.widthMm,
-              height_mm: printSettings.heightMm,
-              border_width_mm: printSettings.borderWidthMm,
-              border_depth_mm: printSettings.borderDepthMm,
-              has_border: printSettings.hasBorder,
-              mesh_resolution: printSettings.meshResolution,
-            },
-          },
-          outputPath: path,
-        });
+  const handleExportSTL = async () => {
+    if (!heightmapData || heightmapWidth === 0 || heightmapHeight === 0) return;
+
+    // Cancel previous export worker
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
+    }
+
+    setIsExporting(true);
+    setExportProgress(0);
+    setExportMessage('Starting…');
+    setProcessing(true);
+
+    const worker = new Worker(new URL('../../workers/stlWorker.ts', import.meta.url), { type: 'module' });
+    workerRef.current = worker;
+
+    worker.onmessage = (event: MessageEvent<StlWorkerOutput>) => {
+      const msg = event.data;
+      if (msg.type === 'progress') {
+        setExportProgress(msg.progress);
+        setExportMessage(msg.message ?? '');
+        return;
+      }
+
+      if (msg.type === 'error') {
+        console.error('STL export failed:', msg.error);
+        setExportMessage(msg.error);
+        setIsExporting(false);
         setProcessing(false);
-        // Show support modal after successful export
+        return;
+      }
+
+      if (msg.type === 'complete') {
+        const filename = `model_depth_${modelGeometry.minDepthMm}-${modelGeometry.maxDepthMm}_lh${printSettings.layerHeightMm}.stl`;
+        const blob = new Blob([msg.stlBytes], { type: 'model/stl' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        setIsExporting(false);
+        setProcessing(false);
         setSupportModalOpened(true);
       }
-    } catch (error) {
-      console.error('Failed to export STL:', error);
+    };
+
+    worker.onerror = (event) => {
+      console.error('STL worker error:', event.message);
+      setExportMessage(event.message);
+      setIsExporting(false);
       setProcessing(false);
-    }
+    };
+
+    worker.postMessage({
+      heightmapBase64: heightmapData,
+      heightmapWidth,
+      heightmapHeight,
+      printSettings: {
+        widthMm: printSettings.widthMm,
+        heightMm: printSettings.heightMm,
+        layerHeightMm: printSettings.layerHeightMm,
+        baseLayerMm: printSettings.baseLayerMm,
+        hasBorder: printSettings.hasBorder,
+        borderWidthMm: printSettings.borderWidthMm,
+        borderDepthMm: printSettings.borderDepthMm,
+        meshResolution: printSettings.meshResolution,
+      },
+    });
   };
 
   const handleExportPlan = async (format: 'txt' | 'json') => {
@@ -188,10 +211,10 @@ export function ExportPanel() {
           size="xs"
           fullWidth
           onClick={handleExportSTL}
-          disabled={!meshReady}
-          title={!meshReady ? 'Requires Python sidecar' : ''}
+          disabled={!meshReady || isExporting}
+          title={!meshReady ? 'Generate 3D data first' : ''}
         >
-          Export STL
+          {isExporting ? `Exporting… ${exportProgress}%` : 'Export STL'}
         </Button>
 
         <Button
@@ -215,7 +238,13 @@ export function ExportPanel() {
         </Button>
 
         <Text size="xs" c="dimmed" mt="auto">
-          {hasImage ? (meshReady ? 'Ready' : 'Preview mode') : 'Load image first'}
+          {hasImage
+            ? meshReady
+              ? isExporting
+                ? exportMessage || 'Exporting…'
+                : 'Ready'
+              : 'Processing…'
+            : 'Load image first'}
         </Text>
       </Stack>
 
